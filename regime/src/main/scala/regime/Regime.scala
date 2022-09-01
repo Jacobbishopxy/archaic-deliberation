@@ -1,5 +1,7 @@
 package regime
 
+import org.apache.spark.sql.SparkSession
+
 case class Conn(
     db: String,
     driver: String,
@@ -19,6 +21,19 @@ case class Conn(
   )
 }
 
-object Common {
+trait SparkTaskCommon {
+  val appName: String
+
+  def process(spark: SparkSession): Unit
+
+  def finish(sparkBuilder: SparkSession.Builder): Unit = {
+    val spark = sparkBuilder.appName(appName).getOrCreate()
+    process(spark)
+    spark.stop()
+  }
+}
+
+object Global {
   //
+  val connConfig = "conn.conf"
 }
