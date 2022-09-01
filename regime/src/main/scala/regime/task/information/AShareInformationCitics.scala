@@ -1,20 +1,20 @@
-package regime.task.info
+package regime.task.information
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SaveMode
 
-import regime.task.Common.{connMarket, connBiz}
 import regime.SparkTaskCommon
+import regime.task.Common.{connMarket, connBiz}
 
-object AShareInformationWind extends SparkTaskCommon {
-  val appName: String = "AShareInformationWind ETL"
+object AShareInformationCitics extends SparkTaskCommon {
+  val appName: String = "AShareInformationCitics ETL"
 
   val query = """
-  SELECT
+  SELECT TOP 5
     ad.S_INFO_WINDCODE as symbol,
     ad.S_INFO_NAME as name,
     ad.S_INFO_COMPNAME as company_name,
-    ad.S_INFO_COMPNAMEENG  as company_name_eng,
+    ad.S_INFO_COMPNAMEENG as company_name_eng,
     ad.S_INFO_EXCHMARKET as exchange,
     ad.S_INFO_LISTBOARD as listboard,
     ad.S_INFO_LISTDATE as listdate,
@@ -22,25 +22,22 @@ object AShareInformationWind extends SparkTaskCommon {
     ad.S_INFO_PINYIN as pinyin,
     ad.S_INFO_LISTBOARDNAME as listboard_name,
     ad.IS_SHSC as is_shsc,
-    aic.WIND_IND_CODE as wind_ind_code,
-    aic.ENTRY_DT as entry_date,
-    aic.REMOVE_DT as remove_date,
-    aic.CUR_SIGN as cur_sign,
-    ac.INDUSTRIESCODE as industry_code,
-    ac.INDUSTRIESNAME as industry_name,
-    ac.LEVELNUM as industry_level
+    aim.S_INFO_WINDCODE as wind_ind_code,
+    aim.S_CON_INDATE as entry_date,
+    aim.S_CON_OUTDATE as remove_date,
+    aim.CUR_SIGN as cur_sign,
+    ic.S_INFO_INDUSTRYCODE as industry_code,
+    ic.S_INFO_INDUSTRYNAME as industry_name
   FROM
     ASHAREDESCRIPTION ad
   LEFT JOIN
-    ASHAREINDUSTRIESCLASS aic
+    AINDEXMEMBERSCITICS aim
   ON
-    ad.S_INFO_WINDCODE = aic.S_INFO_WINDCODE
+    ad.S_INFO_WINDCODE = aim.S_CON_WINDCODE
   LEFT JOIN
-    ASHAREINDUSTRIESCODE ac
+    INDEXCONTRASTSECTOR ic
   ON
-    aic.WIND_IND_CODE = ac.INDUSTRIESCODE
-  WHERE
-    ac.USED = 1
+    aim.S_INFO_WINDCODE = ic.S_INFO_INDEXCODE
   """
 
   val count_current_available = """
@@ -49,18 +46,18 @@ object AShareInformationWind extends SparkTaskCommon {
   FROM
     ASHAREDESCRIPTION ad
   LEFT JOIN
-    ASHAREINDUSTRIESCLASS aic
+    AINDEXMEMBERSCITICS aim
   ON
-    ad.S_INFO_WINDCODE = aic.S_INFO_WINDCODE
+    ad.S_INFO_WINDCODE = aim.S_CON_WINDCODE
   LEFT JOIN
-    ASHAREINDUSTRIESCODE ac
+    INDEXCONTRASTSECTOR ic
   ON
-    aic.WIND_IND_CODE = ac.INDUSTRIESCODE
+    aim.S_INFO_WINDCODE = ic.S_INFO_INDEXCODE
   WHERE
-    ac.USED = 1 AND aic.CUR_SIGN = 1
+    aim.CUR_SIGN = 1
   """
 
-  val save_to = "ashare_information_wind"
+  val save_to = "ashare_information_scitics"
 
   def process(spark: SparkSession): Unit = {
     // Read from source
