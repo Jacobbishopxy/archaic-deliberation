@@ -1,4 +1,4 @@
-package regime.task.information
+package regime.task.timeseries
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SaveMode
@@ -6,6 +6,9 @@ import org.apache.spark.sql.SaveMode
 import regime.SparkTaskCommon
 import regime.task.Common.{connMarket, connBiz}
 
+// TODO:
+// 1. append
+// 1. replace
 object AShareTradingSuspension extends SparkTaskCommon {
   val appName: String = "AShareTradingSuspension ETL"
 

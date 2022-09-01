@@ -8,6 +8,7 @@ import regime.task.Common.{connMarket, connBiz}
 
 // TODO:
 // 1. append by date
+// 1. replace by date
 // 1. check trade_calender
 object AShareEODPricesDaily extends SparkTaskCommon {
   val appName: String = "AShareEODPrices ETL"

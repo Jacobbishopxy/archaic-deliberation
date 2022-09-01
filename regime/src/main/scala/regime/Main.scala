@@ -5,7 +5,8 @@ import org.apache.spark.sql.SparkSession
 import regime.task.information.AShareInformationWind
 import regime.task.information.AShareInformationCitics
 import regime.task.information.AShareCalendar
-import regime.task.information.AShareTradingSuspension
+import regime.task.timeseries.AShareTradingSuspension
+import regime.task.timeseries.AShareEXRightDividend
 import regime.task.timeseries.AShareEODPricesSyncAll
 import regime.task.timeseries.AShareEODPricesDaily
 
@@ -23,8 +24,10 @@ object Main extends App {
       AShareInformationCitics.finish()
     case "information" :: "AShareCalendar" :: _ =>
       AShareCalendar.finish()
-    case "information" :: "AShareTradingSuspension" :: _ =>
-      AShareTradingSuspension.finish()
+    case "timeseries" :: "AShareTradingSuspension" :: tail =>
+      AShareTradingSuspension.finish(tail: _*)
+    case "timeseries" :: "AShareEXRightDividend" :: tail =>
+      AShareEXRightDividend.finish(tail: _*)
     case "timeseries" :: "AShareEODPricesSyncAll" :: _ =>
       AShareEODPricesSyncAll.finish()
     case "timeseries" :: "AShareEODPricesDaily" :: tail =>
