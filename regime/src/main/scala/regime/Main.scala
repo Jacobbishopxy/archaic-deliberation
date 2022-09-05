@@ -24,6 +24,7 @@ object Main extends App {
       AShareInformationCitics.finish()
     case "information" :: "AShareCalendar" :: _ =>
       AShareCalendar.finish()
+
     case "timeseries" :: "AShareTradingSuspension" :: tail =>
       AShareTradingSuspension.finish(tail: _*)
     case "timeseries" :: "AShareEXRightDividend" :: tail =>
@@ -32,6 +33,11 @@ object Main extends App {
       AShareEODPricesSyncAll.finish()
     case "timeseries" :: "AShareEODPricesDaily" :: tail =>
       AShareEODPricesDaily.finish(tail: _*)
+
+    case "finance" :: "AShareBalanceSheet" :: tail => {}
+    case "finance" :: "AShareCashFlow" :: tail     => {}
+    case "finance" :: "AShareIncome" :: tail       => {}
+
     case _ => throw new Exception("Task name not found")
   }
 

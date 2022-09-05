@@ -5,12 +5,14 @@ import org.apache.spark.sql.SaveMode
 
 import regime.SparkTaskCommon
 import regime.task.Common.{connMarket, connBiz}
+import regime.helper.RegimeJdbcHelper
 
 object AShareInformationWind extends SparkTaskCommon {
   val appName: String = "AShareInformationWind ETL"
 
   val query = """
   SELECT
+    ad.OBJECT_ID as object_id,
     ad.S_INFO_WINDCODE as symbol,
     ad.S_INFO_NAME as name,
     ad.S_INFO_COMPNAME as company_name,
@@ -64,18 +66,9 @@ object AShareInformationWind extends SparkTaskCommon {
 
   def process(spark: SparkSession): Unit = {
     // Read from source
-    val df = spark.read
-      .format("jdbc")
-      .options(connMarket.options)
-      .option("query", query)
-      .load()
+    val df = RegimeJdbcHelper(connMarket).readTable(spark, query)
 
     // Save to the target
-    df.write
-      .format("jdbc")
-      .options(connBiz.options)
-      .option("dbtable", save_to)
-      .mode(SaveMode.Overwrite)
-      .save()
+    RegimeJdbcHelper(connBiz).saveTable(df, save_to, SaveMode.Overwrite)
   }
 }
