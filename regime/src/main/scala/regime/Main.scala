@@ -2,12 +2,10 @@ package regime
 
 import org.apache.spark.sql.SparkSession
 
-import regime.task.information.AShareInformationWind
-import regime.task.information.AShareInformationCitics
-import regime.task.information.AShareCalendar
-import regime.task.timeseries.AShareTradingSuspension
-import regime.task.timeseries.AShareEXRightDividend
-import regime.task.timeseries.AShareEODPrices
+import regime.task.information._
+import regime.task.timeseries._
+import regime.task.finance._
+import regime.task.Task
 
 object Main extends App {
   if (args.length < 2) {
@@ -31,10 +29,12 @@ object Main extends App {
     case Task.TimeSeries :: Task.AShareEODPrices :: tail =>
       AShareEODPrices.finish(tail: _*)
 
-    // TODO:
-    case Task.Finance :: Task.AShareBalanceSheet :: tail => {}
-    case Task.Finance :: Task.AShareCashFlow :: tail     => {}
-    case Task.Finance :: Task.AShareIncome :: tail       => {}
+    case Task.Finance :: Task.AShareBalanceSheet :: tail =>
+      AShareBalanceSheet.finish(tail: _*)
+    case Task.Finance :: Task.AShareCashFlow :: tail =>
+      AShareCashFlow.finish(tail: _*)
+    case Task.Finance :: Task.AShareIncome :: tail =>
+      AShareIncome.finish(tail: _*)
 
     case _ => throw new Exception("Task name not found")
   }

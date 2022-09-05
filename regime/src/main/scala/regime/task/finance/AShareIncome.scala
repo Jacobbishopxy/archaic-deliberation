@@ -3,13 +3,12 @@ package regime.task.finance
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SaveMode
 
-import regime.SparkTaskCommon
 import regime.task.Common.{connMarket, connBiz}
-import regime.helper.RegimeJdbcHelper
-import regime.Command
+import regime.helper._
+import regime.task.{Command, Finance}
 
-object AShareIncome extends SparkTaskCommon {
-  val appName: String = "AShareIncome ETL"
+object AShareIncome extends RegimeSpark with Finance {
+  val appName: String = "AShareIncome"
 
   val query = """
   SELECT

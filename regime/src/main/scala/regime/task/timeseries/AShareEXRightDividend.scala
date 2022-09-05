@@ -3,16 +3,12 @@ package regime.task.timeseries
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SaveMode
 
-import regime.SparkTaskCommon
 import regime.task.Common.{connMarket, connBiz}
-import regime.helper.RegimeJdbcHelper
-import regime.Command
+import regime.helper._
+import regime.task.{Command, TimeSeries}
 
-// TODO:
-// 1. append
-// 1. replace
-object AShareEXRightDividend extends SparkTaskCommon {
-  val appName: String = "AShareEXRightDividend ETL"
+object AShareEXRightDividend extends RegimeSpark with TimeSeries {
+  val appName: String = "AShareEXRightDividend"
 
   val query = """
   SELECT

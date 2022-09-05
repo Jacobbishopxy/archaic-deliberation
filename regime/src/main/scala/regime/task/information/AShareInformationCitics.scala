@@ -3,13 +3,12 @@ package regime.task.information
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SaveMode
 
-import regime.SparkTaskCommon
 import regime.task.Common.{connMarket, connBiz}
-import regime.helper.RegimeJdbcHelper
-import regime.Command
+import regime.helper._
+import regime.task.{Command, Information}
 
-object AShareInformationCitics extends SparkTaskCommon {
-  val appName: String = "AShareInformationCitics ETL"
+object AShareInformationCitics extends RegimeSpark with Information {
+  val appName: String = "AShareInformationCitics"
 
   val query = """
   SELECT TOP 5

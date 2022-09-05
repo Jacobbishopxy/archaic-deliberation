@@ -3,13 +3,12 @@ package regime.task.information
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SaveMode
 
-import regime.SparkTaskCommon
 import regime.task.Common.{connMarket, connBiz}
-import regime.helper.RegimeJdbcHelper
-import regime.Command
+import regime.helper._
+import regime.task.{Command, Information}
 
-object AShareCalendar extends SparkTaskCommon {
-  val appName: String = "AShareCalendar ETL"
+object AShareCalendar extends RegimeSpark with Information {
+  val appName = "AShareCalendar"
 
   val query = """
   SELECT
