@@ -24,7 +24,6 @@ object Main extends App {
     case Task.Information :: Task.AShareCalendar :: tail =>
       AShareCalendar.finish(tail: _*)
 
-    // TODO:
     case Task.TimeSeries :: Task.AShareTradingSuspension :: tail =>
       AShareTradingSuspension.finish(tail: _*)
     case Task.TimeSeries :: Task.AShareEXRightDividend :: tail =>

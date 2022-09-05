@@ -102,6 +102,8 @@ object Command {
   val SyncAll         = "SyncAll"
   val DailyUpsert     = "DailyUpsert"
   val DailyDelete     = "DailyDelete"
+  val TimeFromUpsert  = "TimeFromUpsert"
+  val TimeFromDelete  = "TimeFromDelete"
   val TimeRangeUpsert = "TimeRangeUpsert"
   val TimeRangeDelete = "TimeRangeDelete"
   val Initialize      = "Initialize"
