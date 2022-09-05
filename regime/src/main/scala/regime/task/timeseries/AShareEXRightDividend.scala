@@ -16,7 +16,7 @@ object AShareEXRightDividend extends SparkTaskCommon {
   ASHAREEXRIGHTDIVIDENDRECORD
   """
 
-  def process(spark: SparkSession): Unit = {
+  def process(spark: SparkSession, args: String*): Unit = {
     //
   }
 

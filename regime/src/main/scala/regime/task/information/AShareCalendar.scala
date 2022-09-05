@@ -6,6 +6,7 @@ import org.apache.spark.sql.SaveMode
 import regime.SparkTaskCommon
 import regime.task.Common.{connMarket, connBiz}
 import regime.helper.RegimeJdbcHelper
+import regime.Command
 
 object AShareCalendar extends SparkTaskCommon {
   val appName: String = "AShareCalendar ETL"
@@ -19,13 +20,35 @@ object AShareCalendar extends SparkTaskCommon {
     ASHARECALENDAR
   """
 
-  val save_to = "ashare_calendar"
+  val saveTo         = "ashare_calendar"
+  val primaryKeyName = "PK_ashare_calendar"
+  val primaryColumn  = Seq("object_id")
+  val indexName      = "IDX_ashare_calendar"
+  val indexColumn    = Seq("trade_days")
 
-  def process(spark: SparkSession): Unit = {
+  def process(spark: SparkSession, args: String*): Unit = {
+    args.toList match {
+      case Command.SyncAll :: _     => syncAll(spark)
+      case Command.ExecuteOnce :: _ => createPrimaryKeyAndIndex()
+      case _                        => throw new Exception("Invalid command")
+    }
+  }
+
+  private def syncAll(spark: SparkSession): Unit = {
     // Read from source
     val df = RegimeJdbcHelper(connMarket).readTable(spark, query)
 
     // Save to the target
-    RegimeJdbcHelper(connBiz).saveTable(df, save_to, SaveMode.Overwrite)
+    RegimeJdbcHelper(connBiz).saveTable(df, saveTo, SaveMode.Overwrite)
+  }
+
+  private def createPrimaryKeyAndIndex(): Unit = {
+    val helper = RegimeJdbcHelper(connBiz)
+
+    // primary key
+    helper.createPrimaryKey(saveTo, primaryKeyName, primaryColumn)
+
+    // index
+    helper.createIndex(saveTo, indexName, indexColumn)
   }
 }

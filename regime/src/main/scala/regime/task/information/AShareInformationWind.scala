@@ -6,6 +6,7 @@ import org.apache.spark.sql.SaveMode
 import regime.SparkTaskCommon
 import regime.task.Common.{connMarket, connBiz}
 import regime.helper.RegimeJdbcHelper
+import regime.Command
 
 object AShareInformationWind extends SparkTaskCommon {
   val appName: String = "AShareInformationWind ETL"
@@ -62,13 +63,27 @@ object AShareInformationWind extends SparkTaskCommon {
     ac.USED = 1 AND aic.CUR_SIGN = 1
   """
 
-  val save_to = "ashare_information_wind"
+  val saveTo         = "ashare_information_wind"
+  val primaryKeyName = "PK_ashare_information_wind"
+  val primaryColumn  = Seq("object_id")
 
-  def process(spark: SparkSession): Unit = {
+  def process(spark: SparkSession, args: String*): Unit = {
+    args.toList match {
+      case Command.SyncAll :: _     => syncAll(spark)
+      case Command.ExecuteOnce :: _ => createPrimaryKey()
+      case _                        => throw new Exception("Invalid command")
+    }
+  }
+
+  private def syncAll(spark: SparkSession): Unit = {
     // Read from source
     val df = RegimeJdbcHelper(connMarket).readTable(spark, query)
 
     // Save to the target
-    RegimeJdbcHelper(connBiz).saveTable(df, save_to, SaveMode.Overwrite)
+    RegimeJdbcHelper(connBiz).saveTable(df, saveTo, SaveMode.Overwrite)
   }
+
+  def createPrimaryKey(): Unit =
+    RegimeJdbcHelper(connBiz).createPrimaryKey(saveTo, primaryKeyName, primaryColumn)
+
 }

@@ -26,7 +26,7 @@ object AShareTradingSuspension extends SparkTaskCommon {
 
   val save_to = "ashare_trading_suspension"
 
-  def process(spark: SparkSession): Unit = {
+  def process(spark: SparkSession, args: String*): Unit = {
     // Read from source
     val df = spark.read
       .format("jdbc")

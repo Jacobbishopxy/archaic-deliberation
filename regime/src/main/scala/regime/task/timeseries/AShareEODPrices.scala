@@ -6,10 +6,14 @@ import org.apache.spark.sql.SaveMode
 import regime.SparkTaskCommon
 import regime.task.Common.{connMarket, connBiz}
 
-object AShareEODPricesSyncAll extends SparkTaskCommon {
-  val appName: String = "AShareEODPricesSyncAll ETL"
+// TODO:
+// 1. append by date
+// 1. replace by date
+// 1. check trade_calender
+object AShareEODPrices extends SparkTaskCommon {
+  val appName: String = "AShareEODPrices ETL"
 
-  val query = """
+  val querySyncAll = """
   SELECT
     S_INFO_WINDCODE AS symbol,
     TRADE_DT AS trade_date,
@@ -38,23 +42,15 @@ object AShareEODPricesSyncAll extends SparkTaskCommon {
     ASHAREEODPRICES
   """
 
+  val queryDaily = s"""
+  TODO
+  """
+
   val save_to = "ashare_eod_prices"
 
-  def process(spark: SparkSession): Unit = {
-    // Read from source
-    val df = spark.read
-      .format("jdbc")
-      .options(connMarket.options)
-      .option("query", query)
-      .load()
+  def process(spark: SparkSession, args: String*): Unit = {
 
-    // Save to the target
-    df.write
-      .format("jdbc")
-      .options(connBiz.options)
-      .option("dbtable", save_to)
-      .mode(SaveMode.Overwrite)
-      .save()
+    // TODO
   }
 
 }

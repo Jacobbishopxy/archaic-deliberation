@@ -840,15 +840,30 @@ class RegimeJdbcHelper(conn: Conn) {
     JdbcUtils.dropSchema(co.conn, co.opt, schema, cascade)
   }
 
-  def createPrimaryKey(tableName: String, primaryKeyName: String, column: String): Unit = {
-    val query = ""
+  /** Create a primary key
+    *
+    * @param tableName
+    * @param primaryKeyName
+    * @param columns
+    */
+  def createPrimaryKey(
+      tableName: String,
+      primaryKeyName: String,
+      columns: Seq[String]
+  ): Unit = {
+    val query = generateCreatePrimaryKeyStatement(tableName, primaryKeyName, columns)
     val co    = genConnOpt(jdbcOptionsAddTable(tableName))
 
     executeUpdate(co.conn, co.opt, query)(_ => {})
   }
 
+  /** Drop a primary key
+    *
+    * @param tableName
+    * @param primaryKeyName
+    */
   def dropPrimaryKey(tableName: String, primaryKeyName: String): Unit = {
-    val query = ""
+    val query = generateDropPrimaryKeyStatement(tableName, primaryKeyName)
     val co    = genConnOpt(jdbcOptionsAddTable(tableName))
 
     executeUpdate(co.conn, co.opt, query)(_ => {})
