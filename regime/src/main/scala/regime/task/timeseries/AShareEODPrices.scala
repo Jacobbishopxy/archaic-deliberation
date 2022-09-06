@@ -83,7 +83,6 @@ object AShareEODPrices extends RegimeTask with TimeSeries {
           primaryColumn,
           saveTo
         )
-
       case _ => throw new Exception("Invalid command")
     }
   }

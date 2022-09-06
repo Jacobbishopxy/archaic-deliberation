@@ -6,6 +6,7 @@ import org.apache.spark.sql.SaveMode
 import regime.helper.RegimeJdbcHelper
 import regime.task.{Command, Information, RegimeTask}
 import regime.task.Common.{connMarket, connBiz}
+
 object AShareInformationCitics extends RegimeTask with Information {
   val appName: String = "AShareInformationCitics"
 

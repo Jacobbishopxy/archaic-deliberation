@@ -31,6 +31,10 @@ object Main extends App {
             case t @ AShareCashFlow     => t.finish(commands: _*)
             case t @ AShareBalanceSheet => t.finish(commands: _*)
           }
+        case Consensus =>
+          Consensus.unapply(task).get match {
+            case _ => {}
+          }
       }
     }
     case _ =>
