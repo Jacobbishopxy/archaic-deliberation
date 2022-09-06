@@ -5,15 +5,15 @@ import org.apache.spark.sql.SparkSession
 trait RegimeSpark {
   val appName: String
 
-  def process(spark: SparkSession, args: String*): Unit
+  def process(args: String*)(implicit spark: SparkSession): Unit
 
-  def initialize(spark: SparkSession): Unit = {
+  def initialize()(implicit spark: SparkSession): Unit = {
     // Not every Spark task needs this method
   }
 
   def finish(args: String*)(implicit sparkBuilder: SparkSession.Builder): Unit = {
-    val spark = sparkBuilder.appName(appName).getOrCreate()
-    process(spark, args: _*)
+    implicit val spark = sparkBuilder.appName(appName).getOrCreate()
+    process(args: _*)
     spark.stop()
   }
 }

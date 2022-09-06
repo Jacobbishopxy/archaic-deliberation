@@ -3,33 +3,32 @@ package regime.task.information
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SaveMode
 
+import regime.helper.RegimeJdbcHelper
+import regime.task.{Command, Information, RegimeTask}
 import regime.task.Common.{connMarket, connBiz}
-import regime.helper._
-import regime.task.{Command, Information}
-
-object AShareInformationCitics extends RegimeSpark with Information {
+object AShareInformationCitics extends RegimeTask with Information {
   val appName: String = "AShareInformationCitics"
 
   val query = """
   SELECT TOP 5
-    ad.OBJECT_ID as object_id,
-    ad.S_INFO_WINDCODE as symbol,
-    ad.S_INFO_NAME as name,
-    ad.S_INFO_COMPNAME as company_name,
-    ad.S_INFO_COMPNAMEENG as company_name_eng,
-    ad.S_INFO_EXCHMARKET as exchange,
-    ad.S_INFO_LISTBOARD as listboard,
-    ad.S_INFO_LISTDATE as listdate,
-    ad.S_INFO_DELISTDATE as delistdate,
-    ad.S_INFO_PINYIN as pinyin,
-    ad.S_INFO_LISTBOARDNAME as listboard_name,
-    ad.IS_SHSC as is_shsc,
-    aim.S_INFO_WINDCODE as wind_ind_code,
-    aim.S_CON_INDATE as entry_date,
-    aim.S_CON_OUTDATE as remove_date,
-    aim.CUR_SIGN as cur_sign,
-    ic.S_INFO_INDUSTRYCODE as industry_code,
-    ic.S_INFO_INDUSTRYNAME as industry_name
+    ad.OBJECT_ID AS object_id,
+    ad.S_INFO_WINDCODE AS symbol,
+    ad.S_INFO_NAME AS name,
+    ad.S_INFO_COMPNAME AS company_name,
+    ad.S_INFO_COMPNAMEENG AS company_name_eng,
+    ad.S_INFO_EXCHMARKET AS exchange,
+    ad.S_INFO_LISTBOARD AS listboard,
+    ad.S_INFO_LISTDATE AS listdate,
+    ad.S_INFO_DELISTDATE AS delistdate,
+    ad.S_INFO_PINYIN AS pinyin,
+    ad.S_INFO_LISTBOARDNAME AS listboard_name,
+    ad.IS_SHSC AS is_shsc,
+    aim.S_INFO_WINDCODE AS wind_ind_code,
+    aim.S_CON_INDATE AS entry_date,
+    aim.S_CON_OUTDATE AS remove_date,
+    aim.CUR_SIGN AS cur_sign,
+    ic.S_INFO_INDUSTRYCODE AS industry_code,
+    ic.S_INFO_INDUSTRYNAME AS industry_name,
   FROM
     ASHAREDESCRIPTION ad
   LEFT JOIN
@@ -42,7 +41,7 @@ object AShareInformationCitics extends RegimeSpark with Information {
     aim.S_INFO_WINDCODE = ic.S_INFO_INDEXCODE
   """
 
-  val count_current_available = """
+  val countCurrentAvailable = """
   SELECT
     COUNT(*)
   FROM
@@ -63,23 +62,14 @@ object AShareInformationCitics extends RegimeSpark with Information {
   val primaryKeyName = "PK_ashare_information_scitics"
   val primaryColumn  = Seq("object_id")
 
-  def process(spark: SparkSession, args: String*): Unit = {
+  def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
-      case Command.SyncAll :: _     => syncAll(spark)
-      case Command.ExecuteOnce :: _ => createPrimaryKey()
-      case _                        => throw new Exception("Invalid command")
+      case Command.SyncAll :: _ =>
+        syncAll(connMarket, query, connBiz, saveTo)
+      case Command.ExecuteOnce :: _ =>
+        createPrimaryKey(connMarket, saveTo, primaryKeyName, primaryColumn)
+      case _ =>
+        throw new Exception("Invalid command")
     }
   }
-
-  private def syncAll(spark: SparkSession): Unit = {
-    // Read from source
-    val df = RegimeJdbcHelper(connMarket).readTable(spark, query)
-
-    // Save to the target
-    RegimeJdbcHelper(connBiz).saveTable(df, saveTo, SaveMode.Overwrite)
-  }
-
-  private def createPrimaryKey(): Unit =
-    RegimeJdbcHelper(connBiz).createPrimaryKey(saveTo, primaryKeyName, primaryColumn)
-
 }

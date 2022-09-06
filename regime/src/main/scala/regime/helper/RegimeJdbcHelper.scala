@@ -155,8 +155,10 @@ class RegimeJdbcHelper(conn: Conn) {
     * @param method
     * @return
     */
-  private def genUnsupportedDriver(method: String): String =
-    s"Unsupported driver, $method method only works on: org.postgresql.Driver/com.mysql.jdbc.Driver"
+  private def genUnsupportedDriver(method: String): UnsupportedOperationException =
+    new UnsupportedOperationException(
+      s"Unsupported driver, $method method only works on: org.postgresql.Driver/com.mysql.jdbc.Driver"
+    )
 
   /** Generate a create primary key SQL statement.
     *
@@ -185,7 +187,7 @@ class RegimeJdbcHelper(conn: Conn) {
         ADD PRIMARY KEY (${columns.mkString(",")})
         """
       case _ =>
-        throw new Exception(genUnsupportedDriver("createPrimaryKey"))
+        throw genUnsupportedDriver("createPrimaryKey")
     }
   }
 
@@ -316,7 +318,7 @@ class RegimeJdbcHelper(conn: Conn) {
           $updateSet
         """
       case _ =>
-        throw new Exception(genUnsupportedDriver("upsert"))
+        throw genUnsupportedDriver("upsert")
     }
 
     conditions match {
@@ -349,7 +351,7 @@ class RegimeJdbcHelper(conn: Conn) {
         CREATE INDEX `$indexName` ON `$table` ($cl)
         """
       case _ =>
-        throw new Exception(genUnsupportedDriver("createIndex"))
+        throw genUnsupportedDriver("createIndex")
     }
 
   /** Generate a dropIndex SQL statement
@@ -369,7 +371,7 @@ class RegimeJdbcHelper(conn: Conn) {
         DROP INDEX `$name` ON `$table`
         """
       case _ =>
-        throw new Exception(genUnsupportedDriver("dropIndex"))
+        throw genUnsupportedDriver("dropIndex")
     }
 
   /** Generate a createForeignKey SQL statement
@@ -421,7 +423,7 @@ class RegimeJdbcHelper(conn: Conn) {
             .map(ForeignKeyModifyAction.generateString(_, DeleteOrUpdate.Update))
             .getOrElse("")
       case _ =>
-        throw new Exception(genUnsupportedDriver("createForeignKey"))
+        throw genUnsupportedDriver("createForeignKey")
     }
 
   /** Generate a dropForeignKey SQL statement
@@ -441,7 +443,7 @@ class RegimeJdbcHelper(conn: Conn) {
         ALTER TABLE `$table` DROP FOREIGN KEY "$foreignKeyName"
         """
       case _ =>
-        throw new Exception(genUnsupportedDriver("dropForeignKey"))
+        throw genUnsupportedDriver("dropForeignKey")
     }
   }
 

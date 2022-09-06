@@ -3,11 +3,11 @@ package regime.task.timeseries
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SaveMode
 
+import regime.helper.RegimeJdbcHelper
+import regime.task.{Command, TimeSeries, RegimeTask}
 import regime.task.Common.{connMarket, connBiz}
-import regime.helper._
-import regime.task.{Command, TimeSeries}
 
-object AShareEXRightDividend extends RegimeSpark with TimeSeries {
+object AShareEXRightDividend extends RegimeTask with TimeSeries {
   val appName: String = "AShareEXRightDividend"
 
   val query = """
@@ -40,33 +40,28 @@ object AShareEXRightDividend extends RegimeSpark with TimeSeries {
   val indexName      = "IDX_ashare_ex_right_dividend_record"
   val indexColumn    = Seq("update_date")
 
-  def process(spark: SparkSession, args: String*): Unit = {
+  def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
-      case Command.SyncAll :: _                    => syncAll(spark)
-      case Command.ExecuteOnce :: _                => createPrimaryKeyAndIndex()
-      case Command.TimeFromUpsert :: timeFrom :: _ => upsertFromDate(spark, timeFrom)
-      case _                                       => throw new Exception("Invalid command")
+      case Command.SyncAll :: _ =>
+        syncAll(connMarket, query, connBiz, saveTo)
+      case Command.ExecuteOnce :: _ =>
+        createPrimaryKeyAndIndex(
+          connBiz,
+          saveTo,
+          (primaryKeyName, primaryColumn),
+          Seq((indexName, indexColumn))
+        )
+      case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
+        syncUpsert(
+          connMarket,
+          queryFromDate(timeFrom),
+          connBiz,
+          primaryColumn,
+          saveTo
+        )
+      case _ =>
+        throw new Exception("Invalid command")
     }
-  }
-
-  private def syncAll(spark: SparkSession): Unit = {
-    val df = RegimeJdbcHelper(connMarket).readTable(spark, query)
-
-    RegimeJdbcHelper(connBiz).saveTable(df, saveTo, SaveMode.Overwrite)
-  }
-
-  private def createPrimaryKeyAndIndex(): Unit = {
-    val helper = RegimeJdbcHelper(connBiz)
-
-    helper.createPrimaryKey(saveTo, primaryKeyName, primaryColumn)
-
-    helper.createIndex(saveTo, indexName, indexColumn)
-  }
-
-  private def upsertFromDate(spark: SparkSession, fromDate: String): Unit = {
-    val df = RegimeJdbcHelper(connMarket).readTable(spark, queryFromDate(fromDate))
-
-    RegimeJdbcHelper(connBiz).upsertTable(df, saveTo, None, false, primaryColumn, "doUpdate")
   }
 
 }

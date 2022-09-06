@@ -3,18 +3,18 @@ package regime.task.information
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SaveMode
 
+import regime.helper.RegimeJdbcHelper
+import regime.task.{Command, Information, RegimeTask}
 import regime.task.Common.{connMarket, connBiz}
-import regime.helper._
-import regime.task.{Command, Information}
 
-object AShareCalendar extends RegimeSpark with Information {
+object AShareCalendar extends RegimeTask with Information {
   val appName = "AShareCalendar"
 
   val query = """
   SELECT
-    OBJECT_ID as object_id,
-    TRADE_DAYS as trade_days,
-    S_INFO_EXCHMARKET as exchange
+    OBJECT_ID AS object_id,
+    TRADE_DAYS AS trade_days,
+    S_INFO_EXCHMARKET AS exchange
   FROM
     ASHARECALENDAR
   """
@@ -25,29 +25,19 @@ object AShareCalendar extends RegimeSpark with Information {
   val indexName      = "IDX_ashare_calendar"
   val indexColumn    = Seq("trade_days")
 
-  def process(spark: SparkSession, args: String*): Unit = {
+  def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
-      case Command.SyncAll :: _     => syncAll(spark)
-      case Command.ExecuteOnce :: _ => createPrimaryKeyAndIndex()
-      case _                        => throw new Exception("Invalid command")
+      case Command.SyncAll :: _ =>
+        syncAll(connMarket, query, connBiz, saveTo)
+      case Command.ExecuteOnce :: _ =>
+        createPrimaryKeyAndIndex(
+          connBiz,
+          saveTo,
+          (primaryKeyName, primaryColumn),
+          Seq((indexName, indexColumn))
+        )
+      case _ =>
+        throw new Exception("Invalid command")
     }
-  }
-
-  private def syncAll(spark: SparkSession): Unit = {
-    // Read from source
-    val df = RegimeJdbcHelper(connMarket).readTable(spark, query)
-
-    // Save to the target
-    RegimeJdbcHelper(connBiz).saveTable(df, saveTo, SaveMode.Overwrite)
-  }
-
-  private def createPrimaryKeyAndIndex(): Unit = {
-    val helper = RegimeJdbcHelper(connBiz)
-
-    // primary key
-    helper.createPrimaryKey(saveTo, primaryKeyName, primaryColumn)
-
-    // index
-    helper.createIndex(saveTo, indexName, indexColumn)
   }
 }
