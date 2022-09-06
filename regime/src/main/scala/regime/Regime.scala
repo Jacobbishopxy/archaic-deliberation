@@ -58,54 +58,7 @@ object DriverType extends Enumeration {
   val Postgres, MySql, MsSql, Other = Value
 }
 
-trait SparkTaskCommon {
-  val appName: String
-
-  def process(spark: SparkSession, args: String*): Unit
-
-  def initialize(spark: SparkSession): Unit = {
-    // Not every task needs this method
-  }
-
-  def finish(args: String*)(implicit sparkBuilder: SparkSession.Builder): Unit = {
-    val spark = sparkBuilder.appName(appName).getOrCreate()
-    process(spark, args: _*)
-    spark.stop()
-  }
-}
-
 object Global {
   //
   val connConfig = "conn.conf"
-}
-
-object Task {
-
-  val Information             = "Information"
-  val AShareInformationWind   = "AShareInformationWind"
-  val AShareInformationCitics = "AShareInformationCitics"
-  val AShareCalendar          = "AShareCalendar"
-
-  val TimeSeries              = "TimeSeries"
-  val AShareTradingSuspension = "AShareTradingSuspension"
-  val AShareEXRightDividend   = "AShareEXRightDividend"
-  val AShareEODPrices         = "AShareEODPrices"
-
-  val Finance            = "Finance"
-  val AShareBalanceSheet = "AShareBalanceSheet"
-  val AShareCashFlow     = "AShareCashFlow"
-  val AShareIncome       = "AShareIncome"
-
-}
-
-object Command {
-  val SyncAll         = "SyncAll"
-  val DailyUpsert     = "DailyUpsert"
-  val DailyDelete     = "DailyDelete"
-  val TimeFromUpsert  = "TimeFromUpsert"
-  val TimeFromDelete  = "TimeFromDelete"
-  val TimeRangeUpsert = "TimeRangeUpsert"
-  val TimeRangeDelete = "TimeRangeDelete"
-  val Initialize      = "Initialize"
-  val ExecuteOnce     = "ExecuteOnce"
 }

@@ -3,13 +3,12 @@ package regime.task.finance
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SaveMode
 
-import regime.SparkTaskCommon
-import regime.task.Common.{connMarket, connBiz}
 import regime.helper.RegimeJdbcHelper
-import regime.Command
+import regime.task.{Command, Finance, RegimeTask}
+import regime.task.Common.{connMarket, connBiz}
 
-object AShareIncome extends SparkTaskCommon {
-  val appName: String = "AShareIncome ETL"
+object AShareIncome extends RegimeTask with Finance {
+  val appName: String = "AShareIncome"
 
   val query = """
   SELECT
@@ -139,41 +138,34 @@ object AShareIncome extends SparkTaskCommon {
   val indexColumn1   = Seq("update_date")
   val indexColumn2   = Seq("report_period", "symbol")
 
-  def process(spark: SparkSession, args: String*): Unit = {
+  def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
-      case Command.SyncAll :: _                    => syncAll(spark)
-      case Command.ExecuteOnce :: _                => createPrimaryKeyAndIndex()
-      case Command.TimeFromUpsert :: timeFrom :: _ => upsertFromDate(spark, timeFrom)
+      case Command.SyncAll :: _ =>
+        syncAll(connMarket, query, connBiz, saveTo)
+      case Command.ExecuteOnce :: _ =>
+        createPrimaryKeyAndIndex(
+          connBiz,
+          saveTo,
+          (primaryKeyName, primaryColumn),
+          Seq((indexName1, indexColumn1), (indexName2, indexColumn2))
+        )
+      case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
+        syncUpsert(
+          connMarket,
+          queryFromDate(timeFrom),
+          connBiz,
+          primaryColumn,
+          saveTo
+        )
       case Command.TimeRangeUpsert :: timeFrom :: timeTo :: _ =>
-        upsertDateRange(spark, timeFrom, timeTo)
+        syncUpsert(
+          connMarket,
+          queryDateRange(timeFrom, timeTo),
+          connBiz,
+          primaryColumn,
+          saveTo
+        )
       case _ => throw new Exception("Invalid command")
     }
-  }
-
-  private def syncAll(spark: SparkSession): Unit = {
-    val df = RegimeJdbcHelper(connMarket).readTable(spark, query)
-
-    RegimeJdbcHelper(connBiz).saveTable(df, saveTo, SaveMode.Overwrite)
-  }
-
-  private def createPrimaryKeyAndIndex(): Unit = {
-    val helper = RegimeJdbcHelper(connBiz)
-
-    helper.createPrimaryKey(saveTo, primaryKeyName, primaryColumn)
-
-    helper.createIndex(saveTo, indexName1, indexColumn1)
-    helper.createIndex(saveTo, indexName2, indexColumn2)
-  }
-
-  private def upsertFromDate(spark: SparkSession, fromDate: String): Unit = {
-    val df = RegimeJdbcHelper(connMarket).readTable(spark, queryFromDate(fromDate))
-
-    RegimeJdbcHelper(connBiz).upsertTable(df, saveTo, None, false, primaryColumn, "doUpdate")
-  }
-
-  private def upsertDateRange(spark: SparkSession, fromDate: String, toDate: String): Unit = {
-    val df = RegimeJdbcHelper(connMarket).readTable(spark, queryDateRange(fromDate, toDate))
-
-    RegimeJdbcHelper(connBiz).upsertTable(df, saveTo, None, false, primaryColumn, "doUpdate")
   }
 }
