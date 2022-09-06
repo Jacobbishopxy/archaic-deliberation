@@ -16,25 +16,6 @@ object Common {
 
 }
 
-object Task {
-
-  val Information             = "Information"
-  val AShareInformationWind   = "AShareInformationWind"
-  val AShareInformationCitics = "AShareInformationCitics"
-  val AShareCalendar          = "AShareCalendar"
-
-  val TimeSeries              = "TimeSeries"
-  val AShareTradingSuspension = "AShareTradingSuspension"
-  val AShareEXRightDividend   = "AShareEXRightDividend"
-  val AShareEODPrices         = "AShareEODPrices"
-
-  val Finance            = "Finance"
-  val AShareBalanceSheet = "AShareBalanceSheet"
-  val AShareCashFlow     = "AShareCashFlow"
-  val AShareIncome       = "AShareIncome"
-
-}
-
 object Command {
   val SyncAll         = "SyncAll"
   val DailyUpsert     = "DailyUpsert"
