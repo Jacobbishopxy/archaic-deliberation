@@ -37,8 +37,7 @@ object AShareEXRightDividend extends RegimeTask with TimeSeries {
   val saveTo         = "ashare_ex_right_dividend_record"
   val primaryKeyName = "PK_ashare_ex_right_dividend_record"
   val primaryColumn  = Seq("object_id")
-  val indexName      = "IDX_ashare_ex_right_dividend_record"
-  val indexColumn    = Seq("update_date")
+  val index          = ("IDX_ashare_ex_right_dividend_record", Seq("update_date"))
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
@@ -49,7 +48,7 @@ object AShareEXRightDividend extends RegimeTask with TimeSeries {
           connBiz,
           saveTo,
           (primaryKeyName, primaryColumn),
-          Seq((indexName, indexColumn))
+          Seq(index)
         )
       case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
         syncUpsert(

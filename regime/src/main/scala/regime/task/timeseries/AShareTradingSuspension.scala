@@ -31,8 +31,7 @@ object AShareTradingSuspension extends RegimeTask with TimeSeries {
   val saveTo         = "ashare_trading_suspension"
   val primaryKeyName = "PK_ashare_trading_suspension"
   val primaryColumn  = Seq("object_id")
-  val indexName      = "IDX_ashare_trading_suspension"
-  val indexColumn    = Seq("update_date")
+  val index          = ("IDX_ashare_trading_suspension", Seq("update_date"))
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
@@ -43,7 +42,7 @@ object AShareTradingSuspension extends RegimeTask with TimeSeries {
           connBiz,
           saveTo,
           (primaryKeyName, primaryColumn),
-          Seq((indexName, indexColumn))
+          Seq(index)
         )
       case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
         syncUpsert(

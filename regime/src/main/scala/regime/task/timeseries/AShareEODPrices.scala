@@ -51,10 +51,8 @@ object AShareEODPrices extends RegimeTask with TimeSeries {
   val saveTo         = "ashare_eod_prices"
   val primaryKeyName = "PK_ashare_eod_prices"
   val primaryColumn  = Seq("object_id")
-  val indexName1     = "IDX_ashare_eod_prices_1"
-  val indexName2     = "IDX_ashare_eod_prices_2"
-  val indexColumn1   = Seq("update_date")
-  val indexColumn2   = Seq("trade_date", "symbol")
+  val index1         = ("IDX_ashare_eod_prices_1", Seq("update_date"))
+  val index2         = ("IDX_ashare_eod_prices_2", Seq("trade_date", "symbol"))
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
@@ -65,7 +63,7 @@ object AShareEODPrices extends RegimeTask with TimeSeries {
           connBiz,
           saveTo,
           (primaryKeyName, primaryColumn),
-          Seq((indexName1, indexColumn1), (indexName2, indexColumn2))
+          Seq(index1, index2)
         )
       case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
         syncUpsert(

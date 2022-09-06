@@ -29,6 +29,10 @@ object TestTaskCategory extends App {
             case t @ AShareCashFlow     => println(s"${t.appName} do $commands")
             case t @ AShareBalanceSheet => println(s"${t.appName} do $commands")
           }
+        case Consensus =>
+          Consensus.unapply(task).get match {
+            case _ => {}
+          }
       }
     }
     case _ => throw new Exception("Invalid arguments' format")

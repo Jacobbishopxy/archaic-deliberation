@@ -19,11 +19,9 @@ object AShareCalendar extends RegimeTask with Information {
     ASHARECALENDAR
   """
 
-  val saveTo         = "ashare_calendar"
-  val primaryKeyName = "PK_ashare_calendar"
-  val primaryColumn  = Seq("object_id")
-  val indexName      = "IDX_ashare_calendar"
-  val indexColumn    = Seq("trade_days")
+  val saveTo     = "ashare_calendar"
+  val primaryKey = ("PK_ashare_calendar", Seq("object_id"))
+  val index      = ("IDX_ashare_calendar", Seq("trade_days"))
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
@@ -33,8 +31,8 @@ object AShareCalendar extends RegimeTask with Information {
         createPrimaryKeyAndIndex(
           connBiz,
           saveTo,
-          (primaryKeyName, primaryColumn),
-          Seq((indexName, indexColumn))
+          primaryKey,
+          Seq(index)
         )
       case _ =>
         throw new Exception("Invalid command")

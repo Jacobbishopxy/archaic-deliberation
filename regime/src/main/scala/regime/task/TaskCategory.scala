@@ -40,13 +40,10 @@ object Information extends TaskCategory {
     case AShareCalendar.appName          => Some(AShareCalendar)
     case AShareInformationCitics.appName => Some(AShareInformationCitics)
     case AShareInformationWind.appName   => Some(AShareInformationWind)
-    // TODO
-    case AIndexInformation.appName => Some(AIndexInformation)
-    // TODO
+    case AIndexInformation.appName       => Some(AIndexInformation)
     case AIndexInformationCitics.appName => Some(AIndexInformationCitics)
-    // TODO
-    case AIndexInformationWind.appName => Some(AIndexInformationWind)
-    case _                             => None
+    case AIndexInformationWind.appName   => Some(AIndexInformationWind)
+    case _                               => None
   }
 }
 
@@ -54,15 +51,12 @@ object TimeSeries extends TaskCategory {
   val name = "TimeSeries"
 
   def unapply(str: String): Option[TimeSeries] = str match {
-    case AShareEODPrices.appName => Some(AShareEODPrices)
-    // TODO
+    case AShareEODPrices.appName              => Some(AShareEODPrices)
     case AShareEODDerivativeIndicator.appName => Some(AShareEODDerivativeIndicator)
-    // TODO
-    case AShareYield.appName => Some(AShareYield)
-    // TODO
-    case AShareL2Indicators.appName      => Some(AShareL2Indicators)
-    case AShareEXRightDividend.appName   => Some(AShareEXRightDividend)
-    case AShareTradingSuspension.appName => Some(AShareTradingSuspension)
+    case AShareYield.appName                  => Some(AShareYield)
+    case AShareL2Indicators.appName           => Some(AShareL2Indicators)
+    case AShareEXRightDividend.appName        => Some(AShareEXRightDividend)
+    case AShareTradingSuspension.appName      => Some(AShareTradingSuspension)
     // TODO
     case AIndexEODPrices.appName => Some(AIndexEODPrices)
     // TODO
