@@ -7,7 +7,6 @@
 
 # other
 /out/
-/bin/
 /sandbox/
 
 # intellij
@@ -22,5 +21,8 @@
 /.vscode
 !/.vscode/settings.json
 
+.metals
 .DS_Store
 target/
+
+/bin/.env

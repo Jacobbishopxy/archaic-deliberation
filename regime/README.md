@@ -1,5 +1,7 @@
 # Regime
 
+- To develop locally, please make sure `resources/conn.conf` exists (see `resources/conn.template.conf` for more detail).
+
 ## Task
 
 Commands:
