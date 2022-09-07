@@ -52,7 +52,8 @@ object AShareTradingSuspension extends RegimeTask with TimeSeries {
           primaryColumn,
           saveTo
         )
-      case _ =>
+      case c @ _ =>
+        log.error(c)
         throw new Exception("Invalid command")
     }
   }

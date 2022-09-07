@@ -12,6 +12,7 @@ object AShareEODPrices extends RegimeTask with TimeSeries {
 
   val query = """
   SELECT
+    OBJECT_ID AS object_id,
     S_INFO_WINDCODE AS symbol,
     TRADE_DT AS trade_date,
     CRNCY_CODE AS currency,
@@ -81,7 +82,9 @@ object AShareEODPrices extends RegimeTask with TimeSeries {
           primaryColumn,
           saveTo
         )
-      case _ => throw new Exception("Invalid command")
+      case c @ _ =>
+        log.error(c)
+        throw new Exception("Invalid command")
     }
   }
 }

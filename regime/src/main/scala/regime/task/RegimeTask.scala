@@ -28,6 +28,7 @@ trait RegimeTask extends RegimeSpark {
       to: Conn,
       saveTo: String
   )(implicit spark: SparkSession): Unit = {
+    log.info("Starting a syncAll task...")
     val df = RegimeJdbcHelper(from).readTable(sql)
 
     RegimeJdbcHelper(to).saveTable(df, saveTo, SaveMode.Overwrite)
@@ -49,6 +50,16 @@ trait RegimeTask extends RegimeSpark {
       onConflictColumns: Seq[String],
       saveTo: String
   )(implicit spark: SparkSession): Unit = {
+    log.info("Starting a syncUpsert task...")
+    log.info(
+      s"""
+      from: $from
+      sql: $sql
+      to: $to
+      onConflictColumns: $onConflictColumns
+      saveTo: $saveTo
+      """
+    )
     val df = RegimeJdbcHelper(from).readTable(sql)
 
     RegimeJdbcHelper(to).upsertTable(
@@ -70,14 +81,32 @@ trait RegimeTask extends RegimeSpark {
       table: String,
       primaryKeyName: String,
       primaryColumn: Seq[String]
-  )(implicit spark: SparkSession): Unit =
+  )(implicit spark: SparkSession): Unit = {
+    log.info("Starting a createPrimaryKey task...")
+    log.info(
+      s"""
+      conn: $conn
+      table: $table
+      primaryKeyName: $primaryKeyName
+      primaryColumn: $primaryColumn
+      """
+    )
     RegimeJdbcHelper(conn).createPrimaryKey(table, primaryKeyName, primaryColumn)
+  }
 
   def createIndexes(
       conn: Conn,
       table: String,
       indexes: Seq[(String, Seq[String])]
   )(implicit spark: SparkSession): Unit = {
+    log.info("Starting a createIndexes task...")
+    log.info(
+      s"""
+      conn: $conn
+      table: $table
+      indexes: $indexes
+      """
+    )
     val helper = RegimeJdbcHelper(conn)
 
     indexes.foreach(ele => helper.createIndex(table, ele._1, ele._2))
@@ -89,6 +118,15 @@ trait RegimeTask extends RegimeSpark {
       primaryKey: (String, Seq[String]),
       indexes: Seq[(String, Seq[String])]
   )(implicit spark: SparkSession): Unit = {
+    log.info("Starting a createPrimaryKeyAndIndex task...")
+    log.info(
+      s"""
+      conn: $conn
+      table: $table
+      primaryKey: $primaryKey
+      indexes: $indexes
+      """
+    )
     val helper = RegimeJdbcHelper(conn)
 
     // primary key

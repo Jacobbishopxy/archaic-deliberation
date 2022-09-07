@@ -94,7 +94,9 @@ object AShareEODDerivativeIndicator extends RegimeTask with TimeSeries {
           primaryColumn,
           saveTo
         )
-      case _ => throw new Exception("Invalid command")
+      case c @ _ =>
+        log.error(c)
+        throw new Exception("Invalid command")
     }
   }
 

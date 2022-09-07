@@ -30,17 +30,6 @@ case class Conn(
 }
 
 object Conn {
-  def apply(
-      db: String,
-      driver: String,
-      host: String,
-      port: Int,
-      database: String,
-      user: String,
-      password: String
-  ): Conn =
-    Conn(db, driver, host, port, database, user, password)
-
   def apply(config: Config): Conn =
     Conn(
       config.getString("db"),

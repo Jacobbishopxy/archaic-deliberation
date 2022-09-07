@@ -7,53 +7,28 @@ import regime.helper.RegimeJdbcHelper
 import regime.task.{Command, TimeSeries, RegimeTask}
 import regime.task.Common.{connMarket, connBiz}
 
-object AShareYield extends RegimeTask with TimeSeries {
-  val appName: String = "AShareYield"
+object AIndexEODPricesCitics extends RegimeTask with TimeSeries {
+  val appName: String = "AIndexEODPricesCitics"
 
   val query = """
   SELECT
     OBJECT_ID AS object_id,
     S_INFO_WINDCODE AS symbol,
     TRADE_DT AS trade_date,
-    PCT_CHANGE_D,
-    PCT_CHANGE_W,
-    PCT_CHANGE_M,
-    VOLUME_W,
-    VOLUME_M,
-    AMOUNT_W,
-    AMOUNT_M,
-    TURNOVER_D,
-    TURNOVER_D_FLOAT,
-    TURNOVER_W,
-    TURNOVER_W_FLOAT,
-    TURNOVER_W_AVE,
-    TURNOVER_W_AVE_FLOAT,
-    TURNOVER_M,
-    TURNOVER_M_FLOAT,
-    TURNOVER_M_AVE,
-    TURNOVER_M_AVE_FLOAT,
-    PCT_CHANGE_AVE_100W,
-    STD_DEVIATION_100W,
-    VARIANCE_100W,
-    PCT_CHANGE_AVE_24M,
-    STD_DEVIATION_24M,
-    VARIANCE_24M,
-    PCT_CHANGE_AVE_60M,
-    STD_DEVIATION_60M,
-    VARIANCE_60M,
-    BETA_DAY_1Y,
-    BETA_DAY_2Y,
-    ALPHA_DAY_1Y,
-    ALPHA_DAY_2Y,
-    BETA_100W,
-    ALPHA_100W,
-    BETA_24M,
-    BETA_60M,
-    ALPHA_24M,
-    ALPHA_60M,
+    CRNCY_CODE AS currency,
+    S_DQ_PRECLOSE AS pre_close,
+    S_DQ_OPEN AS open,
+    S_DQ_HIGH AS high,
+    S_DQ_LOW AS low,
+    S_DQ_CLOSE AS close,
+    S_DQ_CHANGE AS change,
+    S_DQ_PCTCHANGE AS percent_change,
+    S_DQ_VOLUME AS volume,
+    S_DQ_AMOUNT AS amount,
+    SEC_ID AS security_id,
     OPDATE AS update_date
   FROM
-    ASHAREYIELD
+    AINDEXINDUSTRIESEODCITICS
   """
 
   lazy val queryFromDate = (date: String) => query + s"""
@@ -64,11 +39,11 @@ object AShareYield extends RegimeTask with TimeSeries {
   WHERE OPDATE > '$fromDate' AND OPDATE < '$toDate'
   """
 
-  val saveTo         = "ashare_yield"
-  val primaryKeyName = "PK_ashare_yield"
+  val saveTo         = "aindex_eod_prices"
+  val primaryKeyName = "PK_aindex_eod_prices"
   val primaryColumn  = Seq("object_id")
-  val index1         = ("IDX_ashare_yield_1", Seq("update_date"))
-  val index2         = ("IDX_ashare_yield_2", Seq("trade_date", "symbol"))
+  val index1         = ("IDX_aindex_eod_prices_1", Seq("update_date"))
+  val index2         = ("IDX_aindex_eod_prices_2", Seq("trade_date", "symbol"))
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
@@ -102,5 +77,4 @@ object AShareYield extends RegimeTask with TimeSeries {
         throw new Exception("Invalid command")
     }
   }
-
 }

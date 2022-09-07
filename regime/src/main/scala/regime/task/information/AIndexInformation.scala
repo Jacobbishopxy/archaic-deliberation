@@ -55,5 +55,4 @@ object AIndexInformation extends RegimeTask with Information {
         throw new Exception("Invalid Command")
     }
   }
-
 }
