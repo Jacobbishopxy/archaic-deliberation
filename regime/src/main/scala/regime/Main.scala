@@ -2,10 +2,10 @@ package regime
 
 import org.apache.spark.sql.SparkSession
 
-import regime.task.information._
-import regime.task.timeseries._
-import regime.task.finance._
-import regime.task._
+import regime.market.information._
+import regime.market.timeseries._
+import regime.market.finance._
+import regime.market._
 
 object Main extends App {
   implicit val sparkBuilder = SparkSession.builder()

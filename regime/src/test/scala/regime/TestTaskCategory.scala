@@ -1,9 +1,9 @@
 package regime
 
-import regime.task._
-import regime.task.information._
-import regime.task.timeseries._
-import regime.task.finance._
+import regime.market._
+import regime.market.information._
+import regime.market.timeseries._
+import regime.market.finance._
 
 object TestTaskCategory extends App {
   val mockArgs = Seq("Information", "AShareCalendar", "syncAll")
