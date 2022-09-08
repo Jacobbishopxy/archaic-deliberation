@@ -10,6 +10,7 @@ Commands:
 - SyncAll
 - DailyUpsert
 - DailyDelete
+- CatchFromLastUpdate
 - TimeFromTillNowUpsert
 - TimeFromTillNowDelete
 - TimeRangeUpsert
@@ -27,21 +28,29 @@ Commands:
 
 ### TimeSeries
 
-- [ ]AShareTradingSuspension
-- [ ]AShareEXRightDividend
-- [x]AShareEODPrices
-- [ ]AShareYield
-- [ ]AShareEODDerivativeIndicators
-- [ ]AShareL2Indicators
-- [x]AIndexEODPrices
-- [x]AIndexEODPricesCitics
-- [x]AIndexEODPricesWind
-- [ ]AIndexFinancialDerivative
-- [ ]AIndexValuation
+- [ ] AShareTradingSuspension
+- [ ] AShareEXRightDividend
+- [x] AShareEODPrices
+- [x] AShareYield
+- [x] AShareEODDerivativeIndicator
+- [x] AShareL2Indicator
+- [x] AIndexEODPrices
+- [x] AIndexEODPricesCitics
+- [x] AIndexEODPricesWind
+- [ ] AIndexFinancialDerivative
+- [ ] AIndexValuation
 
 ### Finance
 
-WIP
+- [ ] AShareIssuingDatePredict
+- [ ] AShareBalanceSheet
+- [ ] AShareCashFlow
+- [ ] AShareIncome
+- [ ] AShareFinancialExpense
+- [ ] AShareProfitExpress
+- [ ] AShareProfitNotice
+- [ ] AShareSalesSegment
+- [ ] AShareSalesSegmentMapping
 
 ### Consensus
 

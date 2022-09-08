@@ -7,34 +7,34 @@ import regime.helper.RegimeJdbcHelper
 import regime.market.{Command, TimeSeries, RegimeTask}
 import regime.market.Common.{connMarket, connBiz}
 
-object AShareL2Indicators extends RegimeTask with TimeSeries {
-  val appName: String = "AShareL2Indicators"
+object AShareL2Indicator extends RegimeTask with TimeSeries {
+  val appName: String = "AShareL2Indicator"
 
   val query = """
   SELECT
-    OBJECT_ID as object_id,
-    S_INFO_WINDCODE as symbol,
-    TRADE_DT as trade_date,
-    S_LI_INITIATIVEBUYRATE,
-    S_LI_INITIATIVEBUYMONEY,
-    S_LI_INITIATIVEBUYAMOUNT,
-    S_LI_INITIATIVESELLRATE,
-    S_LI_INITIATIVESELLMONEY,
-    S_LI_INITIATIVESELLAMOUNT,
-    S_LI_LARGEBUYRATE,
-    S_LI_LARGEBUYMONEY,
-    S_LI_LARGEBUYAMOUNT,
-    S_LI_LARGESELLRATE,
-    S_LI_LARGESELLMONEY,
-    S_LI_LARGESELLAMOUNT,
-    S_LI_ENTRUSTRATE,
-    S_LI_ENTRUDIFFERAMOUNT,
-    S_LI_ENTRUDIFFERAMONEY,
-    S_LI_ENTRUSTBUYMONEY,
-    S_LI_ENTRUSTSELLMONEY,
-    S_LI_ENTRUSTBUYAMOUNT,
-    S_LI_ENTRUSTSELLAMOUNT,
-    OPDATE as update_date
+    OBJECT_ID AS object_id,
+    S_INFO_WINDCODE AS symbol,
+    TRADE_DT AS trade_date,
+    S_LI_INITIATIVEBUYRATE AS initiative_buy_rate,
+    S_LI_INITIATIVEBUYMONEY AS initiative_buy_money,
+    S_LI_INITIATIVEBUYAMOUNT AS initiative_buy_amount,
+    S_LI_INITIATIVESELLRATE AS initiative_sell_rate,
+    S_LI_INITIATIVESELLMONEY AS initiative_sell_money,
+    S_LI_INITIATIVESELLAMOUNT AS initiative_sell_amount,
+    S_LI_LARGEBUYRATE AS large_buy_rate,
+    S_LI_LARGEBUYMONEY AS large_buy_money,
+    S_LI_LARGEBUYAMOUNT AS large_buy_amount,
+    S_LI_LARGESELLRATE AS large_sell_rate,
+    S_LI_LARGESELLMONEY AS large_sell_money,
+    S_LI_LARGESELLAMOUNT AS large_sell_amount,
+    S_LI_ENTRUSTRATE AS entrust_rate,
+    S_LI_ENTRUDIFFERAMOUNT AS entrust_differ_amount,
+    S_LI_ENTRUDIFFERAMONEY AS entrust_differ_amoney,
+    S_LI_ENTRUSTBUYMONEY AS entrust_buy_money,
+    S_LI_ENTRUSTSELLMONEY AS entrust_sell_money,
+    S_LI_ENTRUSTBUYAMOUNT AS entrust_buy_amount,
+    S_LI_ENTRUSTSELLAMOUNT AS entrust_sell_amount,
+    OPDATE AS update_date
   FROM
     ASHAREL2INDICATORS
   """
@@ -47,11 +47,11 @@ object AShareL2Indicators extends RegimeTask with TimeSeries {
   WHERE OPDATE > '$fromDate' AND OPDATE < '$toDate'
   """
 
-  val saveTo         = "ashare_level2_indicators"
-  val primaryKeyName = "PK_ashare_level2_indicators"
+  val saveTo         = "ashare_level2_indicator"
+  val primaryKeyName = "PK_ashare_level2_indicator"
   val primaryColumn  = Seq("object_id")
-  val index1         = ("IDX_ashare_level2_indicators", Seq("update_date"))
-  val index2         = ("IDX_ashare_level2_indicators", Seq("trade_date", "symbol"))
+  val index1         = ("IDX_ashare_level2_indicator", Seq("update_date"))
+  val index2         = ("IDX_ashare_level2_indicator", Seq("trade_date", "symbol"))
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {

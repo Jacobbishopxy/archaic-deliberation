@@ -55,7 +55,7 @@ object TimeSeries extends TaskCategory {
     case AShareEODPrices.appName              => Some(AShareEODPrices)
     case AShareEODDerivativeIndicator.appName => Some(AShareEODDerivativeIndicator)
     case AShareYield.appName                  => Some(AShareYield)
-    case AShareL2Indicators.appName           => Some(AShareL2Indicators)
+    case AShareL2Indicator.appName           => Some(AShareL2Indicator)
     case AShareEXRightDividend.appName        => Some(AShareEXRightDividend)
     case AShareTradingSuspension.appName      => Some(AShareTradingSuspension)
     case AIndexEODPrices.appName              => Some(AIndexEODPrices)

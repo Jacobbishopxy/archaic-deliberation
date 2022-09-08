@@ -12,6 +12,7 @@ object AShareEODDerivativeIndicator extends RegimeTask with TimeSeries {
 
   val query = """
   SELECT
+    OBJECT_ID AS object_id,
     S_INFO_WINDCODE AS symbol,
     TRADE_DT AS trade_date,
     CRNCY_CODE AS currency,
@@ -43,7 +44,7 @@ object AShareEODDerivativeIndicator extends RegimeTask with TimeSeries {
     NET_CASH_FLOWS_OPER_ACT_TTM AS cashflow_oper_act_ttm,
     NET_CASH_FLOWS_OPER_ACT_LYR AS cashflow_oper_act_lyr,
     OPER_REV_TTM AS oper_rev_ttm,
-    OPER_REV_LYR AS oper_rev_ttm,
+    OPER_REV_LYR AS oper_rev_lyr,
     NET_INCR_CASH_CASH_EQU_TTM AS net_incr_cash_cash_equ_ttm,
     NET_INCR_CASH_CASH_EQU_LYR AS net_incr_cash_cash_equ_lyr,
     UP_DOWN_LIMIT_STATUS AS up_down_limit_status,
