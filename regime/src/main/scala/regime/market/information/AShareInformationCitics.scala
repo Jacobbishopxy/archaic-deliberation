@@ -59,8 +59,8 @@ object AShareInformationCitics extends RegimeTask with Information {
     aim.CUR_SIGN = 1
   """
 
-  val saveTo         = "ashare_information_scitics"
-  val primaryKeyName = "PK_ashare_information_scitics"
+  val saveTo         = "ashare_information_citics"
+  val primaryKeyName = "PK_ashare_information_citics"
   val primaryColumn  = Seq("object_id")
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {

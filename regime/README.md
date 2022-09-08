@@ -29,13 +29,13 @@ Commands:
 
 - [ ]AShareTradingSuspension
 - [ ]AShareEXRightDividend
-- [ ]AShareIndexEODPrices
+- [x]AShareEODPrices
 - [ ]AShareYield
 - [ ]AShareEODDerivativeIndicators
 - [ ]AShareL2Indicators
-- [ ]AIndexEODPrices
-- [ ]AIndexEODPricesCitics
-- [ ]AIndexEODPricesWind
+- [x]AIndexEODPrices
+- [x]AIndexEODPricesCitics
+- [x]AIndexEODPricesWind
 - [ ]AIndexFinancialDerivative
 - [ ]AIndexValuation
 
