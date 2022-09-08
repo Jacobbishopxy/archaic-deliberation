@@ -5,20 +5,22 @@ env_files = [
 
 [env]
 APP_EXTRA_PACAKGES = "com.typesafe:config:1.4.2"
-APP_TASK_INFORMATION = "Information"
-APP_TASK_TIMESERIES = "TimeSeries"
-APP_TASK_FINANCE = "Finance"
-APP_TASK_CONSENSUS = "Consensus"
+APP_POD_MARKET = "regime-market"
 
+# cargo make --makefile spark.toml check-vars
 [tasks.check-vars]
 script = '''
-echo ${K8S_ADDR}
+echo K8S_ADDR: ${K8S_ADDR}
+echo K8S_NAMESPACE: ${K8S_NAMESPACE}
+echo SPARK_ADDR: ${SPARK_ADDR}
 '''
 
+# cargo make --makefile spark.toml cluster-info
 [tasks.cluster-info]
 command = "kubectl"
 args = ["cluster-info"]
 
+# cargo make --makefile spark.toml sbt-package
 [tasks.sbt-package]
 script = [
   "cd ../regime",
@@ -41,7 +43,7 @@ command = "scp"
 args = [
   "-rp",
   "${PROJECT_CONF_DIR}",
-  "${SPARK_APP_DIR}",
+  "${SPARK_APP_DIR}/${SPARK_CONF_DIR}",
 ]
 
 # cargo make --makefile dev.toml send-deps
@@ -53,11 +55,11 @@ args = [
   "${SPARK_APP_DIR}"
 ]
 
-# cargo make --makefile dev.toml exec-task-information AIndexInformation SyncAll
-[tasks.exec-task-information]
+# cargo make --makefile dev.toml exec-market Information AIndexInformation SyncAll
+[tasks.exec-market]
 script = '''
 kubectl run \
-  --namespace ${K8S_NAMESPACE} job3 \
+  --namespace ${K8S_NAMESPACE} ${APP_POD_MARKET} \
   --rm \
   --tty -i \
   --restart Never \
@@ -69,44 +71,5 @@ kubectl run \
   --packages ${APP_EXTRA_PACAKGES} \
   --jars ${SPARK_JARS_MSSQL},${SPARK_JARS_MYSQL},${SPARK_JARS_POSTGRES} \
   --class regime.Main \
-  ${SPARK_APP} ${APP_TASK_INFORMATION} ${@}
+  ${SPARK_APP} ${@}
 '''
-
-# cargo make --makefile dev.toml exec-task-information AIndexEODPrices TimeRangeUpsert 20210101 20220101
-[tasks.exec-task-timeseries]
-script = '''
-kubectl run \
-  --namespace ${K8S_NAMESPACE} job3 \
-  --rm \
-  --tty -i \
-  --restart Never \
-  --image ${K8S_SPARK_CONTAINER_IMAGE} \
-  -- \
-  spark-submit \
-  --master ${SPARK_ADDR} \
-  --deploy-mode cluster \
-  --packages ${APP_EXTRA_PACAKGES} \
-  --jars ${SPARK_JARS_MSSQL},${SPARK_JARS_MYSQL},${SPARK_JARS_POSTGRES} \
-  --class regime.Main \
-  ${SPARK_APP} ${APP_TASK_TIMESERIES} ${@}
-'''
-
-# cargo make --makefile dev.toml exec-task-information AShareBalanceSheet TimeFromTillNowUpsert 20220101
-[tasks.exec-task-finance]
-script = '''
-kubectl run \
-  --namespace ${K8S_NAMESPACE} job3 \
-  --rm \
-  --tty -i \
-  --restart Never \
-  --image ${K8S_SPARK_CONTAINER_IMAGE} \
-  -- \
-  spark-submit \
-  --master ${SPARK_ADDR} \
-  --deploy-mode cluster \
-  --packages ${APP_EXTRA_PACAKGES} \
-  --jars ${SPARK_JARS_MSSQL},${SPARK_JARS_MYSQL},${SPARK_JARS_POSTGRES} \
-  --class regime.Main \
-  ${SPARK_APP} ${APP_TASK_FINANCE} ${@}
-'''
-

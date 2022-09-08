@@ -12,7 +12,22 @@ case class Conn(
     user: String,
     password: String
 ) {
-  def url: String = s"jdbc:$db://$host:$port/$database"
+
+  lazy val driverType = driver match {
+    case "com.microsoft.sqlserver.jdbc.SQLServerDriver" => DriverType.MsSql
+    case "com.mysql.jdbc.Driver"                        => DriverType.MySql
+    case "org.postgresql.Driver"                        => DriverType.Postgres
+    case _                                              => DriverType.Other
+  }
+
+  def url: String = {
+    driverType match {
+      case DriverType.MsSql =>
+        s"jdbc:$db://$host:$port;databaseName=$database;encrypt=true;trustServerCertificate=true;"
+      case _ =>
+        s"jdbc:$db://$host:$port/$database"
+    }
+  }
 
   def options: Map[String, String] = Map(
     "url"      -> this.url,
@@ -21,12 +36,6 @@ case class Conn(
     "password" -> password
   )
 
-  def driverType: DriverType.Value = driver match {
-    case "com.microsoft.sqlserver.Driver" => DriverType.MsSql
-    case "com.mysql.jdbc.Driver"          => DriverType.MySql
-    case "org.postgresql.Driver"          => DriverType.Postgres
-    case _                                => DriverType.Other
-  }
 }
 
 object Conn {

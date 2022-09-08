@@ -14,27 +14,13 @@ object Main extends App {
     case taskCategory :: task :: commands => {
       TaskCategory.unapply(taskCategory).get match {
         case Information =>
-          Information.unapply(task).get match {
-            case t @ AShareCalendar          => t.finish(commands: _*)
-            case t @ AShareInformationWind   => t.finish(commands: _*)
-            case t @ AShareInformationCitics => t.finish(commands: _*)
-          }
+          Information.unapply(task).get.finish(commands: _*)
         case TimeSeries =>
-          TimeSeries.unapply(task).get match {
-            case t @ AShareTradingSuspension => t.finish(commands: _*)
-            case t @ AShareEXRightDividend   => t.finish(commands: _*)
-            case t @ AShareEODPrices         => t.finish(commands: _*)
-          }
+          TimeSeries.unapply(task).get.finish(commands: _*)
         case Finance =>
-          Finance.unapply(task).get match {
-            case t @ AShareIncome       => t.finish(commands: _*)
-            case t @ AShareCashFlow     => t.finish(commands: _*)
-            case t @ AShareBalanceSheet => t.finish(commands: _*)
-          }
+          Finance.unapply(task).get.finish(commands: _*)
         case Consensus =>
-          Consensus.unapply(task).get match {
-            case _ => {}
-          }
+          Consensus.unapply(task).get.finish(commands: _*)
       }
     }
     case _ =>

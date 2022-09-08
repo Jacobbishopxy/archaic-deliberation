@@ -6,7 +6,7 @@ import regime.market.timeseries._
 import regime.market.finance._
 
 object TestTaskCategory extends App {
-  val mockArgs = Seq("Information", "AShareCalendar", "syncAll")
+  val mockArgs = Seq("Information", "AShareInformationCitics", "SyncAll")
 
   mockArgs match {
     case taskCategory :: task :: commands => {

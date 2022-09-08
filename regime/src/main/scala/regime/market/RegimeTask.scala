@@ -5,6 +5,7 @@ import org.apache.spark.sql.SaveMode
 
 import regime.helper._
 import regime.Conn
+import org.apache.spark.util.SizeEstimator
 
 trait RegimeTask extends RegimeSpark {
 
@@ -28,10 +29,18 @@ trait RegimeTask extends RegimeSpark {
       to: Conn,
       saveTo: String
   )(implicit spark: SparkSession): Unit = {
-    log.info("Starting a syncAll task...")
+    log.info("Starting a SyncAll task...")
+    log.info("Loading data into memory...")
+
     val df = RegimeJdbcHelper(from).readTable(sql)
 
+    log.info(s"Size estimate: ${SizeEstimator.estimate(df)}")
+    log.info("Writing data into database...")
+
     RegimeJdbcHelper(to).saveTable(df, saveTo, SaveMode.Overwrite)
+
+    log.info("Writing process complete!")
+    log.info("SyncAll task complete!")
   }
 
   /** Sync data from one table to another by upsert.
@@ -50,7 +59,7 @@ trait RegimeTask extends RegimeSpark {
       onConflictColumns: Seq[String],
       saveTo: String
   )(implicit spark: SparkSession): Unit = {
-    log.info("Starting a syncUpsert task...")
+    log.info("Starting a SyncUpsert task...")
     log.info(
       s"""
       from: $from
@@ -60,7 +69,11 @@ trait RegimeTask extends RegimeSpark {
       saveTo: $saveTo
       """
     )
+
     val df = RegimeJdbcHelper(from).readTable(sql)
+
+    log.info(s"Size estimate: ${SizeEstimator.estimate(df)}")
+    log.info("Writing data into database...")
 
     RegimeJdbcHelper(to).upsertTable(
       df,
@@ -70,6 +83,9 @@ trait RegimeTask extends RegimeSpark {
       onConflictColumns,
       RegimeJdbcHelper.UpsertAction.DoUpdate
     )
+
+    log.info("Writing process complete!")
+    log.info("SyncAll task complete!")
   }
 
   // ===============================================================================================
@@ -82,7 +98,7 @@ trait RegimeTask extends RegimeSpark {
       primaryKeyName: String,
       primaryColumn: Seq[String]
   )(implicit spark: SparkSession): Unit = {
-    log.info("Starting a createPrimaryKey task...")
+    log.info("Starting a CreatePrimaryKey task...")
     log.info(
       s"""
       conn: $conn
@@ -91,7 +107,10 @@ trait RegimeTask extends RegimeSpark {
       primaryColumn: $primaryColumn
       """
     )
+
     RegimeJdbcHelper(conn).createPrimaryKey(table, primaryKeyName, primaryColumn)
+
+    log.info("CreatePrimaryKey task complete!")
   }
 
   def createIndexes(
@@ -99,7 +118,7 @@ trait RegimeTask extends RegimeSpark {
       table: String,
       indexes: Seq[(String, Seq[String])]
   )(implicit spark: SparkSession): Unit = {
-    log.info("Starting a createIndexes task...")
+    log.info("Starting a CreateIndexes task...")
     log.info(
       s"""
       conn: $conn
@@ -110,6 +129,8 @@ trait RegimeTask extends RegimeSpark {
     val helper = RegimeJdbcHelper(conn)
 
     indexes.foreach(ele => helper.createIndex(table, ele._1, ele._2))
+
+    log.info("CreateIndexes task complete!")
   }
 
   def createPrimaryKeyAndIndex(
@@ -118,7 +139,7 @@ trait RegimeTask extends RegimeSpark {
       primaryKey: (String, Seq[String]),
       indexes: Seq[(String, Seq[String])]
   )(implicit spark: SparkSession): Unit = {
-    log.info("Starting a createPrimaryKeyAndIndex task...")
+    log.info("Starting a CreatePrimaryKeyAndIndex task...")
     log.info(
       s"""
       conn: $conn
@@ -134,6 +155,8 @@ trait RegimeTask extends RegimeSpark {
 
     // indexes
     indexes.foreach(ele => helper.createIndex(table, ele._1, ele._2))
+
+    log.info("CreatePrimaryKeyAndIndex task complete!")
   }
 
 }

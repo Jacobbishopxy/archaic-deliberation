@@ -3,24 +3,25 @@ package regime.market
 import regime.market.information._
 import regime.market.timeseries._
 import regime.market.finance._
+import regime.helper.RegimeSpark
 
 sealed trait TaskCategory {
   val name: String
 }
 
-trait Information {
+trait Information extends RegimeSpark {
   val appName: String
 }
 
-trait TimeSeries {
+trait TimeSeries extends RegimeSpark {
   val appName: String
 }
 
-trait Finance {
+trait Finance extends RegimeSpark {
   val appName: String
 }
 
-trait Consensus {
+trait Consensus extends RegimeSpark {
   val appName: String
 }
 

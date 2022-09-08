@@ -11,7 +11,7 @@ object AShareInformationCitics extends RegimeTask with Information {
   val appName: String = "AShareInformationCitics"
 
   val query = """
-  SELECT TOP 5
+  SELECT
     ad.OBJECT_ID AS object_id,
     ad.S_INFO_WINDCODE AS symbol,
     ad.S_INFO_NAME AS name,
@@ -29,7 +29,7 @@ object AShareInformationCitics extends RegimeTask with Information {
     aim.S_CON_OUTDATE AS remove_date,
     aim.CUR_SIGN AS cur_sign,
     ic.S_INFO_INDUSTRYCODE AS industry_code,
-    ic.S_INFO_INDUSTRYNAME AS industry_name,
+    ic.S_INFO_INDUSTRYNAME AS industry_name
   FROM
     ASHAREDESCRIPTION ad
   LEFT JOIN

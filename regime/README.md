@@ -2,7 +2,7 @@
 
 - To develop locally, please make sure `resources/conn.conf` exists (see `resources/conn.template.conf` for more detail).
 
-## Task
+## Market
 
 Commands:
 
@@ -18,8 +18,39 @@ Commands:
 
 ### Information
 
+- [x] AShareCalendar
+- [x] AShareInformationCitics
+- [x] AShareInformationWind
+- [x] AIndexInformation
+- [x] AIndexInformationCitics
+- [x] AIndexInformationWind
+
 ### TimeSeries
+
+- [ ]AShareTradingSuspension
+- [ ]AShareEXRightDividend
+- [ ]AShareIndexEODPrices
+- [ ]AShareYield
+- [ ]AShareEODDerivativeIndicators
+- [ ]AShareL2Indicators
+- [ ]AIndexEODPrices
+- [ ]AIndexEODPricesCitics
+- [ ]AIndexEODPricesWind
+- [ ]AIndexFinancialDerivative
+- [ ]AIndexValuation
 
 ### Finance
 
+WIP
+
 ### Consensus
+
+WIP
+
+## Product
+
+WIP
+
+## Portfolio
+
+WIP
