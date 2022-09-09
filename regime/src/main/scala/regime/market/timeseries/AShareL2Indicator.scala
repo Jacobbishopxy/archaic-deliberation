@@ -50,8 +50,8 @@ object AShareL2Indicator extends RegimeTask with TimeSeries {
   val saveTo         = "ashare_level2_indicator"
   val primaryKeyName = "PK_ashare_level2_indicator"
   val primaryColumn  = Seq("object_id")
-  val index1         = ("IDX_ashare_level2_indicator", Seq("update_date"))
-  val index2         = ("IDX_ashare_level2_indicator", Seq("trade_date", "symbol"))
+  val index1         = ("IDX_ashare_level2_indicator1", Seq("update_date"))
+  val index2         = ("IDX_ashare_level2_indicator2", Seq("trade_date", "symbol"))
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {

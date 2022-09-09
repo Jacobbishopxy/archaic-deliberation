@@ -35,7 +35,6 @@ case class Conn(
     "user"     -> user,
     "password" -> password
   )
-
 }
 
 object Conn {

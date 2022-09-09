@@ -449,7 +449,7 @@ class RegimeJdbcHelper(conn: Conn) {
 
   // ===============================================================================================
   // general functions
-  // 1. runStatement
+  // 1. runSaveStatement
   // 1. readTable
   // 1. saveTable
   // 1. upsertTable
@@ -485,7 +485,7 @@ class RegimeJdbcHelper(conn: Conn) {
     * @param statement
     * @param options
     */
-  def runStatement(
+  def runSaveStatement(
       df: DataFrame,
       statement: String,
       options: JdbcOptionsInWrite
@@ -624,7 +624,7 @@ class RegimeJdbcHelper(conn: Conn) {
       conflictAction
     )
 
-    runStatement(
+    runSaveStatement(
       df,
       upsertStmt,
       jdbcOptionsAddTable(table)

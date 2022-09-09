@@ -2,10 +2,10 @@ package regime.market
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SaveMode
+import org.apache.spark.util.SizeEstimator
 
 import regime.helper._
 import regime.Conn
-import org.apache.spark.util.SizeEstimator
 
 trait RegimeTask extends RegimeSpark {
 
@@ -30,6 +30,11 @@ trait RegimeTask extends RegimeSpark {
       saveTo: String
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncAll task...")
+    log.info("Checking if table exists...")
+    val helper = RegimeJdbcHelper(to)
+    if (helper.tableExists(saveTo))
+      throw new Exception(s"Table $saveTo already exists, SyncAll operation is not allowed!")
+
     log.info("Loading data into memory...")
 
     val df = RegimeJdbcHelper(from).readTable(sql)
@@ -37,7 +42,7 @@ trait RegimeTask extends RegimeSpark {
     log.info(s"Size estimate: ${SizeEstimator.estimate(df)}")
     log.info("Writing data into database...")
 
-    RegimeJdbcHelper(to).saveTable(df, saveTo, SaveMode.Overwrite)
+    helper.saveTable(df, saveTo, SaveMode.ErrorIfExists)
 
     log.info("Writing process complete!")
     log.info("SyncAll task complete!")
@@ -60,6 +65,11 @@ trait RegimeTask extends RegimeSpark {
       saveTo: String
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncUpsert task...")
+    log.info("Checking if table exists...")
+    val helper = RegimeJdbcHelper(to)
+    if (!helper.tableExists(saveTo))
+      throw new Exception(s"Table $saveTo doesn't exists, SyncUpsert operation is not all allowed!")
+
     log.info(
       s"""
       from: $from
@@ -75,7 +85,7 @@ trait RegimeTask extends RegimeSpark {
     log.info(s"Size estimate: ${SizeEstimator.estimate(df)}")
     log.info("Writing data into database...")
 
-    RegimeJdbcHelper(to).upsertTable(
+    helper.upsertTable(
       df,
       saveTo,
       None,
