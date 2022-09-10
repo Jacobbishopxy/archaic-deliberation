@@ -19,38 +19,43 @@ object RegimeTimeHelper {
     SELECT first_value(max_$columnName) FROM $tableName
     """
 
+  private lazy val sourceViewName = "SOURCE_DF"
+  private lazy val targetViewName = "TARGET_DF"
+
   def insertFromLastUpdateTime(
       sourceConn: ConnTableColumn,
       targetConn: ConnTableColumn,
       querySqlCst: Any => String
   )(implicit spark: SparkSession): Option[Long] = {
+    // helpers
     val sourceHelper = RegimeJdbcHelper(sourceConn.conn)
     val targetHelper = RegimeJdbcHelper(targetConn.conn)
 
+    // get latest date from both tables
     val sourceDf = sourceHelper.readTable(getMaxDate(sourceConn.table, sourceConn.column))
     val targetDf = targetHelper.readTable(getMaxDate(targetConn.table, targetConn.column))
 
-    sourceDf.createOrReplaceTempView("SOURCE_DF")
-    targetDf.createOrReplaceTempView("TARGET_DF")
+    // create temp views
+    sourceDf.createOrReplaceTempView(sourceViewName)
+    targetDf.createOrReplaceTempView(targetViewName)
 
-    val sourceFirstValue = getFirstValue(sourceConn.table, sourceConn.column)
-    val targetFirstValue = getFirstValue(targetConn.table, targetConn.column)
+    // first value from each view
+    val sourceFirstValue = getFirstValue(sourceViewName, sourceConn.column)
+    val targetFirstValue = getFirstValue(targetViewName, targetConn.column)
 
     val resRow = spark
       .sql(s"""SELECT if(($sourceFirstValue) > ($targetFirstValue),($targetFirstValue),NULL)""")
       .toDF()
       .first()
 
-    if (resRow.isNullAt(0)) {
-      return None
-    }
+    if (resRow.isNullAt(0)) return None
 
-    val updateFrom = resRow.get(0)
-
-    val df = sourceHelper.readTable(querySqlCst(updateFrom))
+    // DataFrame from the last update point
+    val df = sourceHelper.readTable(querySqlCst(resRow.get(0)))
 
     val size = SizeEstimator.estimate(df)
 
+    // Saving date into target table
     sourceHelper.saveTable(df, targetConn.table, SaveMode.Append)
 
     Some(size)

@@ -5,7 +5,7 @@ import org.apache.spark.sql.SaveMode
 
 import regime.helper.RegimeJdbcHelper
 import regime.market.{Command, TimeSeries, RegimeTask}
-import regime.market.Common.{connMarket, connBiz, connBizTable}
+import regime.market.Common.{connMarket, connBizTable}
 
 object AShareEODPrices extends RegimeTask with TimeSeries {
   val appName: String = "AShareEODPrices"
@@ -58,7 +58,7 @@ object AShareEODPrices extends RegimeTask with TimeSeries {
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
       case Command.SyncAll :: _ =>
-        syncAll(connMarket, query, connBiz, saveTo)
+        syncAll(connMarket, query, connBizTable(saveTo))
       case Command.ExecuteOnce :: _ =>
         createPrimaryKeyAndIndex(
           connBizTable(saveTo),
@@ -69,17 +69,15 @@ object AShareEODPrices extends RegimeTask with TimeSeries {
         syncUpsert(
           connMarket,
           queryFromDate(timeFrom),
-          connBiz,
-          primaryColumn,
-          saveTo
+          connBizTable(saveTo),
+          primaryColumn
         )
       case Command.TimeRangeUpsert :: timeFrom :: timeTo :: _ =>
         syncUpsert(
           connMarket,
           queryDateRange(timeFrom, timeTo),
-          connBiz,
-          primaryColumn,
-          saveTo
+          connBizTable(saveTo),
+          primaryColumn
         )
       case c @ _ =>
         log.error(c)

@@ -22,18 +22,17 @@ trait RegimeTask extends RegimeSpark {
     * @param from
     * @param sql
     * @param to
-    * @param saveTo
     * @param spark
     */
   def syncAll(
       from: Conn,
       sql: String,
-      to: Conn,
-      saveTo: String
+      to: ConnTable
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncAll task...")
     log.info("Checking if table exists...")
-    val helper = RegimeJdbcHelper(to)
+    val helper = RegimeJdbcHelper(to.conn)
+    val saveTo = to.table
     if (helper.tableExists(saveTo))
       throw new Exception(s"Table $saveTo already exists, SyncAll operation is not allowed!")
 
@@ -62,13 +61,13 @@ trait RegimeTask extends RegimeSpark {
   def syncUpsert(
       from: Conn,
       sql: String,
-      to: Conn,
-      onConflictColumns: Seq[String],
-      saveTo: String
+      to: ConnTable,
+      onConflictColumns: Seq[String]
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncUpsert task...")
     log.info("Checking if table exists...")
-    val helper = RegimeJdbcHelper(to)
+    val saveTo = to.table
+    val helper = RegimeJdbcHelper(to.conn)
     if (!helper.tableExists(saveTo))
       throw new Exception(s"Table $saveTo doesn't exists, SyncUpsert operation is not all allowed!")
 
@@ -127,6 +126,13 @@ trait RegimeTask extends RegimeSpark {
   // ExecuteOnce functions
   // ===============================================================================================
 
+  /** Create primary key
+    *
+    * @param connTable
+    * @param primaryKeyName
+    * @param primaryColumn
+    * @param spark
+    */
   def createPrimaryKey(
       connTable: ConnTable,
       primaryKeyName: String,
@@ -151,6 +157,12 @@ trait RegimeTask extends RegimeSpark {
     log.info("CreatePrimaryKey task complete!")
   }
 
+  /** Create indexes
+    *
+    * @param connTable
+    * @param indexes
+    * @param spark
+    */
   def createIndexes(
       connTable: ConnTable,
       indexes: Seq[(String, Seq[String])]
@@ -170,6 +182,13 @@ trait RegimeTask extends RegimeSpark {
     log.info("CreateIndexes task complete!")
   }
 
+  /** Create primary key and index
+    *
+    * @param connTable
+    * @param primaryKey
+    * @param indexes
+    * @param spark
+    */
   def createPrimaryKeyAndIndex(
       connTable: ConnTable,
       primaryKey: (String, Seq[String]),

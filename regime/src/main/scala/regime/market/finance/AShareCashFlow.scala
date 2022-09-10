@@ -5,7 +5,7 @@ import org.apache.spark.sql.SaveMode
 
 import regime.helper.RegimeJdbcHelper
 import regime.market.{Command, Finance, RegimeTask}
-import regime.market.Common.{connMarket, connBiz, connBizTable}
+import regime.market.Common.{connMarket, connBizTable}
 
 object AShareCashFlow extends RegimeTask with Finance {
   val appName: String = "AShareCashFlow"
@@ -153,7 +153,7 @@ object AShareCashFlow extends RegimeTask with Finance {
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
       case Command.SyncAll :: _ =>
-        syncAll(connMarket, query, connBiz, saveTo)
+        syncAll(connMarket, query, connBizTable(saveTo))
       case Command.ExecuteOnce :: _ =>
         createPrimaryKeyAndIndex(
           connBizTable(saveTo),
@@ -164,17 +164,15 @@ object AShareCashFlow extends RegimeTask with Finance {
         syncUpsert(
           connMarket,
           queryFromDate(timeFrom),
-          connBiz,
-          primaryColumn,
-          saveTo
+          connBizTable(saveTo),
+          primaryColumn
         )
       case Command.TimeRangeUpsert :: timeFrom :: timeTo :: _ =>
         syncUpsert(
           connMarket,
           queryDateRange(timeFrom, timeTo),
-          connBiz,
-          primaryColumn,
-          saveTo
+          connBizTable(saveTo),
+          primaryColumn
         )
       case _ => throw new Exception("Invalid command")
     }
