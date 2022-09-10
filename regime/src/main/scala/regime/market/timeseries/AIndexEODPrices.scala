@@ -5,7 +5,7 @@ import org.apache.spark.sql.SaveMode
 
 import regime.helper.RegimeJdbcHelper
 import regime.market.{Command, TimeSeries, RegimeTask}
-import regime.market.Common.{connMarket, connBizTable}
+import regime.market.Common._
 
 object AIndexEODPrices extends RegimeTask with TimeSeries {
   val appName: String = "AIndexEODPrices"
@@ -39,6 +39,7 @@ object AIndexEODPrices extends RegimeTask with TimeSeries {
   WHERE OPDATE > '$fromDate' AND OPDATE < '$toDate'
   """
 
+  val queryFrom      = "AINDEXEODPRICES"
   val saveTo         = "aindex_eod_prices"
   val primaryKeyName = "PK_aindex_eod_prices"
   val primaryColumn  = Seq("object_id")
@@ -54,6 +55,19 @@ object AIndexEODPrices extends RegimeTask with TimeSeries {
           connBizTable(saveTo),
           (primaryKeyName, primaryColumn),
           Seq(index1, index2)
+        )
+      case Command.SyncFromLastUpdate :: _ =>
+        syncInsertFromLastUpdate(
+          connMarketTableColumn(queryFrom, "OPDATE"),
+          connBizTableColumn(saveTo, "update_date"),
+          queryFromDate
+        )
+      case Command.OverrideFromLastUpdate :: _ =>
+        syncUpsertFromLastUpdate(
+          connMarketTableColumn(queryFrom, "OPDATE"),
+          connBizTableColumn(saveTo, "update_date"),
+          primaryColumn,
+          queryFromDate
         )
       case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
         syncUpsert(

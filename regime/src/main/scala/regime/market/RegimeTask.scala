@@ -109,7 +109,7 @@ trait RegimeTask extends RegimeSpark {
   def syncInsertFromLastUpdate(
       from: ConnTableColumn,
       to: ConnTableColumn,
-      querySqlCst: Any => String
+      querySqlCst: String => String
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncInsertFromLastUpdate...")
     val size = RegimeTimeHelper.insertFromLastUpdateTime(
@@ -120,6 +120,24 @@ trait RegimeTask extends RegimeSpark {
 
     log.info(s"Size estimate: ${size}")
     log.info("SyncInsertFromLastUpdate task complete!")
+  }
+
+  def syncUpsertFromLastUpdate(
+      from: ConnTableColumn,
+      to: ConnTableColumn,
+      onConflictColumns: Seq[String],
+      querySqlCst: String => String
+  )(implicit spark: SparkSession): Unit = {
+    log.info("Starting a SyncUpsertFromLastUpdate...")
+    val size = RegimeTimeHelper.upsertFromLastUpdateTime(
+      from,
+      to,
+      onConflictColumns,
+      querySqlCst
+    )
+
+    log.info(s"Size estimate: ${size}")
+    log.info("SyncUpsertFromLastUpdate task complete!")
   }
 
   // ===============================================================================================
