@@ -8,8 +8,6 @@ import regime.market.{Command, Finance, RegimeTask}
 import regime.market.Common.{connMarket, connBiz}
 
 object AShareSalesSegmentMapping extends RegimeTask with Finance {
-  val appName: String = "AShareSalesSegmentMapping"
-
   val query = """
   ASHARESALESSEGMENTMAPPING
   """

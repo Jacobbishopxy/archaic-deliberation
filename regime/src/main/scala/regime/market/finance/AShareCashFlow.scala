@@ -8,9 +8,7 @@ import regime.market.{Command, Finance, RegimeTask}
 import regime.market.Common.{connMarket, connBizTable}
 
 object AShareCashFlow extends RegimeTask with Finance {
-  val appName: String = "AShareCashFlow"
-
-  val query = """
+  lazy val query = """
   SELECT
     OBJECT_ID AS object_id,
     S_INFO_WINDCODE AS symbol,
@@ -142,18 +140,23 @@ object AShareCashFlow extends RegimeTask with Finance {
   WHERE OPDATE > '$fromDate' AND OPDATE < '$toDate'
   """
 
-  val saveTo         = "ashare_cashflow"
-  val primaryKeyName = "PK_ashare_cashflow"
-  val primaryColumn  = Seq("object_id")
-  val indexName1     = "IDX_ashare_cashflow_1"
-  val indexName2     = "IDX_ashare_cashflow_2"
-  val indexColumn1   = Seq("update_date")
-  val indexColumn2   = Seq("report_period", "symbol")
+  lazy val saveTo         = "ashare_cashflow"
+  lazy val primaryKeyName = "PK_ashare_cashflow"
+  lazy val primaryColumn  = Seq("object_id")
+  lazy val indexName1     = "IDX_ashare_cashflow_1"
+  lazy val indexName2     = "IDX_ashare_cashflow_2"
+  lazy val indexColumn1   = Seq("update_date")
+  lazy val indexColumn2   = Seq("report_period", "symbol")
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
-      case Command.SyncAll :: _ =>
-        syncAll(connMarket, query, connBizTable(saveTo))
+      case Command.Initialize :: _ =>
+        syncInitAll(connMarket, query, connBizTable(saveTo))
+        createPrimaryKeyAndIndex(
+          connBizTable(saveTo),
+          (primaryKeyName, primaryColumn),
+          Seq((indexName1, indexColumn1), (indexName2, indexColumn2))
+        )
       case Command.ExecuteOnce :: _ =>
         createPrimaryKeyAndIndex(
           connBizTable(saveTo),

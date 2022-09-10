@@ -5,12 +5,10 @@ import org.apache.spark.sql.SaveMode
 
 import regime.helper.RegimeJdbcHelper
 import regime.market.{Command, TimeSeries, RegimeTask}
-import regime.market.Common.{connMarket, connBizTable}
+import regime.market.Common._
 
 object AShareEXRightDividend extends RegimeTask with TimeSeries {
-  val appName: String = "AShareEXRightDividend"
-
-  val query = """
+  lazy val query = """
   SELECT
     OBJECT_ID as object_id,
     S_INFO_WINDCODE as symbol,
@@ -33,21 +31,36 @@ object AShareEXRightDividend extends RegimeTask with TimeSeries {
   lazy val queryFromDate = (date: String) => query + s"""
   WHERE OPDATE > '$date'
   """
-
-  val saveTo         = "ashare_ex_right_dividend_record"
-  val primaryKeyName = "PK_ashare_ex_right_dividend_record"
-  val primaryColumn  = Seq("object_id")
-  val index          = ("IDX_ashare_ex_right_dividend_record", Seq("update_date"))
+  lazy val readFrom       = "ASHAREEXRIGHTDIVIDENDRECORD"
+  lazy val saveTo         = "ashare_ex_right_dividend_record"
+  lazy val readUpdateCol  = "OPDATE"
+  lazy val saveUpdateCol  = "update_date"
+  lazy val primaryKeyName = "PK_ashare_ex_right_dividend_record"
+  lazy val primaryColumn  = Seq("object_id")
+  lazy val index          = ("IDX_ashare_ex_right_dividend_record", Seq("update_date"))
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
-      case Command.SyncAll :: _ =>
-        syncAll(connMarket, query, connBizTable(saveTo))
+      case Command.Initialize :: _ =>
+        syncInitAll(connMarket, query, connBizTable(saveTo))
       case Command.ExecuteOnce :: _ =>
         createPrimaryKeyAndIndex(
           connBizTable(saveTo),
           (primaryKeyName, primaryColumn),
           Seq(index)
+        )
+      case Command.SyncFromLastUpdate :: _ =>
+        syncInsertFromLastUpdate(
+          connMarketTableColumn(readFrom, readUpdateCol),
+          connBizTableColumn(saveTo, saveUpdateCol),
+          queryFromDate
+        )
+      case Command.OverrideFromLastUpdate :: _ =>
+        syncUpsertFromLastUpdate(
+          connMarketTableColumn(readFrom, readUpdateCol),
+          connBizTableColumn(saveTo, saveUpdateCol),
+          primaryColumn,
+          queryFromDate
         )
       case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
         syncUpsert(

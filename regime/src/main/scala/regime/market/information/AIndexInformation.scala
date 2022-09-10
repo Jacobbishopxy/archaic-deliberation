@@ -8,9 +8,7 @@ import regime.market.{Command, Information, RegimeTask}
 import regime.market.Common.{connMarket, connBizTable}
 
 object AIndexInformation extends RegimeTask with Information {
-  val appName: String = "AIndexInformation"
-
-  val query = """
+  lazy val query = """
   SELECT
     ad.OBJECT_ID AS object_id,
     am.S_INFO_WINDCODE,
@@ -41,16 +39,19 @@ object AIndexInformation extends RegimeTask with Information {
     am.S_INFO_WINDCODE = ad.S_INFO_WINDCODE
   """
 
-  val saveTo         = "aindex_information"
-  val primaryKeyName = "PK_aindex_information"
-  val primaryColumn  = Seq("object_id")
+  lazy val saveTo         = "aindex_information"
+  lazy val primaryKeyName = "PK_aindex_information"
+  lazy val primaryColumn  = Seq("object_id")
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
-      case Command.SyncAll :: _ =>
-        syncAll(connMarket, query, connBizTable(saveTo))
+      case Command.Initialize :: _ =>
+        syncInitAll(connMarket, query, connBizTable(saveTo))
+        createPrimaryKey(connBizTable(saveTo), primaryKeyName, primaryColumn)
       case Command.ExecuteOnce :: _ =>
         createPrimaryKey(connBizTable(saveTo), primaryKeyName, primaryColumn)
+      case Command.SyncAll :: _ =>
+        syncReplaceAll(connMarket, query, connBizTable(saveTo))
       case _ =>
         throw new Exception("Invalid Command")
     }

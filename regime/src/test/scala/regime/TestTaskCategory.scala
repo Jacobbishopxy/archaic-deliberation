@@ -10,27 +10,27 @@ object TestTaskCategory extends App {
 
   mockArgs match {
     case taskCategory :: task :: commands => {
-      TaskCategory.unapply(taskCategory).get match {
+      TaskCategory.unapply(taskCategory) match {
         case Information =>
-          Information.unapply(task).get match {
+          Information.unapply(task) match {
             case t @ AShareCalendar          => println(s"${t.appName} do $commands")
             case t @ AShareInformationWind   => println(s"${t.appName} do $commands")
             case t @ AShareInformationCitics => println(s"${t.appName} do $commands")
           }
         case TimeSeries =>
-          TimeSeries.unapply(task).get match {
+          TimeSeries.unapply(task) match {
             case t @ AShareTradingSuspension => println(s"${t.appName} do $commands")
             case t @ AShareEXRightDividend   => println(s"${t.appName} do $commands")
             case t @ AShareEODPrices         => println(s"${t.appName} do $commands")
           }
         case Finance =>
-          Finance.unapply(task).get match {
+          Finance.unapply(task) match {
             case t @ AShareIncome       => println(s"${t.appName} do $commands")
             case t @ AShareCashFlow     => println(s"${t.appName} do $commands")
             case t @ AShareBalanceSheet => println(s"${t.appName} do $commands")
           }
         case Consensus =>
-          Consensus.unapply(task).get match {
+          Consensus.unapply(task) match {
             case _ => {}
           }
       }

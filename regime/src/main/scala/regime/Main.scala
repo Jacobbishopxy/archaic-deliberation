@@ -12,15 +12,15 @@ object Main extends App {
 
   args.toList match {
     case taskCategory :: task :: commands => {
-      TaskCategory.unapply(taskCategory).get match {
+      TaskCategory.unapply(taskCategory) match {
         case Information =>
-          Information.unapply(task).get.finish(commands: _*)
+          Information.unapply(task).finish(commands: _*)
         case TimeSeries =>
-          TimeSeries.unapply(task).get.finish(commands: _*)
+          TimeSeries.unapply(task).finish(commands: _*)
         case Finance =>
-          Finance.unapply(task).get.finish(commands: _*)
+          Finance.unapply(task).finish(commands: _*)
         case Consensus =>
-          Consensus.unapply(task).get.finish(commands: _*)
+          Consensus.unapply(task).finish(commands: _*)
       }
     }
     case _ =>

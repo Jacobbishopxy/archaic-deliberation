@@ -17,19 +17,19 @@ trait RegimeTask extends RegimeSpark {
 
   /** Sync all data from one table to another.
     *
-    * Make sure OOM issue when syncing a big table.
+    * Only works for the first time.
     *
     * @param from
     * @param sql
     * @param to
     * @param spark
     */
-  def syncAll(
+  def syncInitAll(
       from: Conn,
       sql: String,
       to: ConnTable
   )(implicit spark: SparkSession): Unit = {
-    log.info("Starting a SyncAll task...")
+    log.info("Starting a SyncInitAll task...")
     log.info("Checking if table exists...")
     val helper = RegimeJdbcHelper(to.conn)
     val saveTo = to.table
@@ -37,16 +37,44 @@ trait RegimeTask extends RegimeSpark {
       throw new Exception(s"Table $saveTo already exists, SyncAll operation is not allowed!")
 
     log.info("Loading data into memory...")
-
     val df = RegimeJdbcHelper(from).readTable(sql)
 
     log.info(s"Size estimate: ${SizeEstimator.estimate(df)}")
     log.info("Writing data into database...")
-
     helper.saveTable(df, saveTo, SaveMode.ErrorIfExists)
 
     log.info("Writing process complete!")
-    log.info("SyncAll task complete!")
+    log.info("SyncInitAll task complete!")
+  }
+
+  /** Replace all data from one table.
+    *
+    * All the current existing data will be dumped.
+    *
+    * @param from
+    * @param sql
+    * @param to
+    * @param spark
+    */
+  def syncReplaceAll(
+      from: Conn,
+      sql: String,
+      to: ConnTable
+  )(implicit spark: SparkSession): Unit = {
+    log.info("Starting a SyncInitAll task...")
+    log.info("Checking if table exists...")
+    val helper = RegimeJdbcHelper(to.conn)
+    val saveTo = to.table
+
+    log.info("Loading data into memory...")
+    val df = RegimeJdbcHelper(from).readTable(sql)
+
+    log.info(s"Size estimate: ${SizeEstimator.estimate(df)}")
+    log.info("Writing data into database...")
+    helper.saveTable(df, saveTo, SaveMode.Overwrite)
+
+    log.info("Writing process complete!")
+    log.info("SyncInitAll task complete!")
   }
 
   /** Sync data from one table to another by upsert.

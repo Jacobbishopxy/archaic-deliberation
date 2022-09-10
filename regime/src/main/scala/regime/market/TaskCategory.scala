@@ -6,94 +6,86 @@ import regime.market.finance._
 import regime.helper.RegimeSpark
 
 sealed trait TaskCategory {
-  val name: String
+  val name = this.getClass.getSimpleName.dropRight(1)
 }
 
 trait Information extends RegimeSpark {
-  val appName: String
+  val appName = this.getClass.getSimpleName.dropRight(1)
 }
 
 trait TimeSeries extends RegimeSpark {
-  val appName: String
+  val appName = this.getClass.getSimpleName.dropRight(1)
 }
 
 trait Finance extends RegimeSpark {
-  val appName: String
+  val appName = this.getClass.getSimpleName.dropRight(1)
 }
 
 trait Consensus extends RegimeSpark {
-  val appName: String
+  val appName = this.getClass.getSimpleName.dropRight(1)
 }
 
 object TaskCategory {
-  def unapply(str: String): Option[TaskCategory] = str match {
-    case Information.name => Some(Information)
-    case TimeSeries.name  => Some(TimeSeries)
-    case Finance.name     => Some(Finance)
-    case _                => None
+  def unapply(str: String): TaskCategory = str match {
+    case Information.name => Information
+    case TimeSeries.name  => TimeSeries
+    case Finance.name     => Finance
+    case _                => throw new Exception(s"$str is not in TaskCategory")
   }
 }
 
 object Information extends TaskCategory {
-  val name = "Information"
-
-  def unapply(str: String): Option[Information] = str match {
-    case AShareCalendar.appName          => Some(AShareCalendar)
-    case AShareInformationCitics.appName => Some(AShareInformationCitics)
-    case AShareInformationWind.appName   => Some(AShareInformationWind)
-    case AIndexInformation.appName       => Some(AIndexInformation)
-    case AIndexInformationCitics.appName => Some(AIndexInformationCitics)
-    case AIndexInformationWind.appName   => Some(AIndexInformationWind)
-    case _                               => None
+  def unapply(str: String): Information = str match {
+    case AShareCalendar.appName          => AShareCalendar
+    case AShareInformationCitics.appName => AShareInformationCitics
+    case AShareInformationWind.appName   => AShareInformationWind
+    case AIndexInformation.appName       => AIndexInformation
+    case AIndexInformationCitics.appName => AIndexInformationCitics
+    case AIndexInformationWind.appName   => AIndexInformationWind
+    case _                               => throw new Exception(s"$str is not in Information")
   }
 }
 
 object TimeSeries extends TaskCategory {
-  val name = "TimeSeries"
-
-  def unapply(str: String): Option[TimeSeries] = str match {
-    case AShareEODPrices.appName              => Some(AShareEODPrices)
-    case AShareEODDerivativeIndicator.appName => Some(AShareEODDerivativeIndicator)
-    case AShareYield.appName                  => Some(AShareYield)
-    case AShareL2Indicator.appName           => Some(AShareL2Indicator)
-    case AShareEXRightDividend.appName        => Some(AShareEXRightDividend)
-    case AShareTradingSuspension.appName      => Some(AShareTradingSuspension)
-    case AIndexEODPrices.appName              => Some(AIndexEODPrices)
-    case AIndexEODPricesCitics.appName        => Some(AIndexEODPricesCitics)
-    case AIndexEODPricesWind.appName          => Some(AIndexEODPricesWind)
-    case AIndexValuation.appName              => Some(AIndexValuation)
-    case AIndexFinancialDerivative.appName    => Some(AIndexFinancialDerivative)
-    case _                                    => None
+  def unapply(str: String): TimeSeries = str match {
+    case AShareEODPrices.appName              => AShareEODPrices
+    case AShareEODDerivativeIndicator.appName => AShareEODDerivativeIndicator
+    case AShareYield.appName                  => AShareYield
+    case AShareL2Indicator.appName            => AShareL2Indicator
+    case AShareEXRightDividend.appName        => AShareEXRightDividend
+    case AShareTradingSuspension.appName      => AShareTradingSuspension
+    case AIndexEODPrices.appName              => AIndexEODPrices
+    case AIndexEODPricesCitics.appName        => AIndexEODPricesCitics
+    case AIndexEODPricesWind.appName          => AIndexEODPricesWind
+    case AIndexValuation.appName              => AIndexValuation
+    case AIndexFinancialDerivative.appName    => AIndexFinancialDerivative
+    case _                                    => throw new Exception(s"$str is not in TimeSeries")
   }
 }
 
 object Finance extends TaskCategory {
-  val name = "Finance"
-
-  def unapply(str: String): Option[Finance] = str match {
-    case AShareBalanceSheet.appName => Some(AShareBalanceSheet)
-    case AShareCashFlow.appName     => Some(AShareCashFlow)
-    case AShareIncome.appName       => Some(AShareIncome)
+  def unapply(str: String): Finance = str match {
+    case AShareBalanceSheet.appName => AShareBalanceSheet
+    case AShareCashFlow.appName     => AShareCashFlow
+    case AShareIncome.appName       => AShareIncome
     // TODO
-    case AShareIssuingDatePredict.appName => Some(AShareIssuingDatePredict)
+    case AShareIssuingDatePredict.appName => AShareIssuingDatePredict
     // TODO
-    case AShareFinancialExpense.appName => Some(AShareFinancialExpense)
+    case AShareFinancialExpense.appName => AShareFinancialExpense
     // TODO
-    case AShareProfitExpress.appName => Some(AShareProfitExpress)
+    case AShareProfitExpress.appName => AShareProfitExpress
     // TODO
-    case AShareProfitNotice.appName => Some(AShareProfitNotice)
+    case AShareProfitNotice.appName => AShareProfitNotice
     // TODO
-    case AShareSalesSegmentMapping.appName => Some(AShareSalesSegmentMapping)
+    case AShareSalesSegmentMapping.appName => AShareSalesSegmentMapping
     // TODO
-    case AShareSalesSegment.appName => Some(AShareSalesSegment)
-    case _                          => None
+    case AShareSalesSegment.appName => AShareSalesSegment
+    case _                          => throw new Exception(s"$str is not in Finance")
   }
 }
 
 object Consensus extends TaskCategory {
-  val name: String = "Consensus"
-
-  def unapply(str: String): Option[Consensus] = str match {
-    case _ => None
+  def unapply(str: String): Consensus = str match {
+    case _ => throw new Exception(s"$str is not in Consensus")
   }
 }

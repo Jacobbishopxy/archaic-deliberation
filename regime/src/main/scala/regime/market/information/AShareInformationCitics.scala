@@ -8,9 +8,7 @@ import regime.market.{Command, Information, RegimeTask}
 import regime.market.Common.{connMarket, connBizTable}
 
 object AShareInformationCitics extends RegimeTask with Information {
-  val appName: String = "AShareInformationCitics"
-
-  val query = """
+  lazy val query = """
   SELECT
     ad.OBJECT_ID AS object_id,
     ad.S_INFO_WINDCODE AS symbol,
@@ -42,7 +40,7 @@ object AShareInformationCitics extends RegimeTask with Information {
     aim.S_INFO_WINDCODE = ic.S_INFO_INDEXCODE
   """
 
-  val countCurrentAvailable = """
+  lazy val countCurrentAvailable = """
   SELECT
     COUNT(*)
   FROM
@@ -59,16 +57,19 @@ object AShareInformationCitics extends RegimeTask with Information {
     aim.CUR_SIGN = 1
   """
 
-  val saveTo         = "ashare_information_citics"
-  val primaryKeyName = "PK_ashare_information_citics"
-  val primaryColumn  = Seq("object_id")
+  lazy val saveTo         = "ashare_information_citics"
+  lazy val primaryKeyName = "PK_ashare_information_citics"
+  lazy val primaryColumn  = Seq("object_id")
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
-      case Command.SyncAll :: _ =>
-        syncAll(connMarket, query, connBizTable(saveTo))
+      case Command.Initialize :: _ =>
+        syncInitAll(connMarket, query, connBizTable(saveTo))
+        createPrimaryKey(connBizTable(saveTo), primaryKeyName, primaryColumn)
       case Command.ExecuteOnce :: _ =>
         createPrimaryKey(connBizTable(saveTo), primaryKeyName, primaryColumn)
+      case Command.SyncAll :: _ =>
+        syncReplaceAll(connMarket, query, connBizTable(saveTo))
       case _ =>
         throw new Exception("Invalid command")
     }

@@ -8,8 +8,6 @@ import regime.market.{Command, Finance, RegimeTask}
 import regime.market.Common.{connMarket, connBiz}
 
 object AShareIssuingDatePredict extends RegimeTask with Finance {
-  val appName: String = "AShareIssuingDatePredict"
-
   val query = """
   ASHAREISSUINGDATEPREDICT
   """

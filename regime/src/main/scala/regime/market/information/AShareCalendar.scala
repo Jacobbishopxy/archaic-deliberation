@@ -8,9 +8,7 @@ import regime.market.{Command, Information, RegimeTask}
 import regime.market.Common.{connMarket, connBizTable}
 
 object AShareCalendar extends RegimeTask with Information {
-  val appName = "AShareCalendar"
-
-  val query = """
+  lazy val query = """
   SELECT
     OBJECT_ID AS object_id,
     TRADE_DAYS AS trade_days,
@@ -19,20 +17,27 @@ object AShareCalendar extends RegimeTask with Information {
     ASHARECALENDAR
   """
 
-  val saveTo     = "ashare_calendar"
-  val primaryKey = ("PK_ashare_calendar", Seq("object_id"))
-  val index      = ("IDX_ashare_calendar", Seq("trade_days"))
+  lazy val saveTo     = "ashare_calendar"
+  lazy val primaryKey = ("PK_ashare_calendar", Seq("object_id"))
+  lazy val index      = ("IDX_ashare_calendar", Seq("trade_days"))
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
-      case Command.SyncAll :: _ =>
-        syncAll(connMarket, query, connBizTable(saveTo))
+      case Command.Initialize :: _ =>
+        syncInitAll(connMarket, query, connBizTable(saveTo))
+        createPrimaryKeyAndIndex(
+          connBizTable(saveTo),
+          primaryKey,
+          Seq(index)
+        )
       case Command.ExecuteOnce :: _ =>
         createPrimaryKeyAndIndex(
           connBizTable(saveTo),
           primaryKey,
           Seq(index)
         )
+      case Command.SyncAll :: _ =>
+        syncReplaceAll(connMarket, query, connBizTable(saveTo))
       case _ =>
         throw new Exception("Invalid command")
     }
