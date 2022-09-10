@@ -5,7 +5,7 @@ import org.apache.spark.sql.SaveMode
 
 import regime.helper.RegimeJdbcHelper
 import regime.market.{Command, Information, RegimeTask}
-import regime.market.Common.{connMarket, connBiz}
+import regime.market.Common.{connMarket, connBiz, connBizTable}
 
 object AShareCalendar extends RegimeTask with Information {
   val appName = "AShareCalendar"
@@ -29,8 +29,7 @@ object AShareCalendar extends RegimeTask with Information {
         syncAll(connMarket, query, connBiz, saveTo)
       case Command.ExecuteOnce :: _ =>
         createPrimaryKeyAndIndex(
-          connBiz,
-          saveTo,
+          connBizTable(saveTo),
           primaryKey,
           Seq(index)
         )

@@ -6,6 +6,8 @@ import org.apache.spark.util.SizeEstimator
 
 import regime.helper._
 import regime.Conn
+import regime.ConnTableColumn
+import regime.ConnTable
 
 trait RegimeTask extends RegimeSpark {
 
@@ -98,73 +100,97 @@ trait RegimeTask extends RegimeSpark {
     log.info("SyncAll task complete!")
   }
 
+  /** Sync data from the last update point.
+    *
+    * @param from
+    * @param to
+    * @param querySqlCst
+    * @param spark
+    */
+  def syncInsertFromLastUpdate(
+      from: ConnTableColumn,
+      to: ConnTableColumn,
+      querySqlCst: Any => String
+  )(implicit spark: SparkSession): Unit = {
+    log.info("Starting a SyncInsertFromLastUpdate...")
+    val size = RegimeTimeHelper.insertFromLastUpdateTime(
+      from,
+      to,
+      querySqlCst
+    )
+
+    log.info(s"Size estimate: ${size}")
+    log.info("SyncInsertFromLastUpdate task complete!")
+  }
+
   // ===============================================================================================
   // ExecuteOnce functions
   // ===============================================================================================
 
   def createPrimaryKey(
-      conn: Conn,
-      table: String,
+      connTable: ConnTable,
       primaryKeyName: String,
       primaryColumn: Seq[String]
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a CreatePrimaryKey task...")
     log.info(
       s"""
-      conn: $conn
-      table: $table
+      conn: ${connTable.conn}
+      table: ${connTable.table}
       primaryKeyName: $primaryKeyName
       primaryColumn: $primaryColumn
       """
     )
 
-    RegimeJdbcHelper(conn).createPrimaryKey(table, primaryKeyName, primaryColumn)
+    RegimeJdbcHelper(connTable.conn).createPrimaryKey(
+      connTable.table,
+      primaryKeyName,
+      primaryColumn
+    )
 
     log.info("CreatePrimaryKey task complete!")
   }
 
   def createIndexes(
-      conn: Conn,
-      table: String,
+      connTable: ConnTable,
       indexes: Seq[(String, Seq[String])]
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a CreateIndexes task...")
     log.info(
       s"""
-      conn: $conn
-      table: $table
+      conn: ${connTable.conn}
+      table: ${connTable.table}
       indexes: $indexes
       """
     )
-    val helper = RegimeJdbcHelper(conn)
+    val helper = RegimeJdbcHelper(connTable.conn)
 
-    indexes.foreach(ele => helper.createIndex(table, ele._1, ele._2))
+    indexes.foreach(ele => helper.createIndex(connTable.table, ele._1, ele._2))
 
     log.info("CreateIndexes task complete!")
   }
 
   def createPrimaryKeyAndIndex(
-      conn: Conn,
-      table: String,
+      connTable: ConnTable,
       primaryKey: (String, Seq[String]),
       indexes: Seq[(String, Seq[String])]
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a CreatePrimaryKeyAndIndex task...")
     log.info(
       s"""
-      conn: $conn
-      table: $table
+      conn: ${connTable.conn}
+      table: ${connTable.table}
       primaryKey: $primaryKey
       indexes: $indexes
       """
     )
-    val helper = RegimeJdbcHelper(conn)
+    val helper = RegimeJdbcHelper(connTable.conn)
 
     // primary key
-    helper.createPrimaryKey(table, primaryKey._1, primaryKey._2)
+    helper.createPrimaryKey(connTable.table, primaryKey._1, primaryKey._2)
 
     // indexes
-    indexes.foreach(ele => helper.createIndex(table, ele._1, ele._2))
+    indexes.foreach(ele => helper.createIndex(connTable.table, ele._1, ele._2))
 
     log.info("CreatePrimaryKeyAndIndex task complete!")
   }

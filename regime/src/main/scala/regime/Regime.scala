@@ -29,7 +29,7 @@ case class Conn(
     }
   }
 
-  def options: Map[String, String] = Map(
+  def options = Map(
     "url"      -> this.url,
     "driver"   -> driver,
     "user"     -> user,
@@ -55,7 +55,15 @@ object DriverType extends Enumeration {
   val Postgres, MySql, MsSql, Other = Value
 }
 
+case class ConnTable(conn: Conn, table: String) {
+  def options = conn.options + ("dbtable" -> table)
+}
+
+case class ConnTableColumn(conn: Conn, table: String, column: String) {
+  def options = conn.options + ("dbtable" -> table)
+}
+
 object Global {
-  //
+  // Secret configs: Database connection information
   val connConfig = "conn.conf"
 }

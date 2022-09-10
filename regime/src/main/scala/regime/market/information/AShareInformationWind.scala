@@ -5,7 +5,7 @@ import org.apache.spark.sql.SaveMode
 
 import regime.helper.RegimeJdbcHelper
 import regime.market.{Command, Information, RegimeTask}
-import regime.market.Common.{connMarket, connBiz}
+import regime.market.Common.{connMarket, connBiz, connBizTable}
 
 object AShareInformationWind extends RegimeTask with Information {
   val appName: String = "AShareInformationWind"
@@ -71,7 +71,7 @@ object AShareInformationWind extends RegimeTask with Information {
       case Command.SyncAll :: _ =>
         syncAll(connMarket, query, connBiz, saveTo)
       case Command.ExecuteOnce :: _ =>
-        createPrimaryKey(connBiz, saveTo, primaryKeyName, primaryColumn)
+        createPrimaryKey(connBizTable(saveTo), primaryKeyName, primaryColumn)
       case _ =>
         throw new Exception("Invalid command")
     }

@@ -5,7 +5,7 @@ import org.apache.spark.sql.SaveMode
 
 import regime.helper.RegimeJdbcHelper
 import regime.market.{Command, Finance, RegimeTask}
-import regime.market.Common.{connMarket, connBiz}
+import regime.market.Common.{connMarket, connBiz, connBizTable}
 
 object AShareIncome extends RegimeTask with Finance {
   val appName: String = "AShareIncome"
@@ -144,8 +144,7 @@ object AShareIncome extends RegimeTask with Finance {
         syncAll(connMarket, query, connBiz, saveTo)
       case Command.ExecuteOnce :: _ =>
         createPrimaryKeyAndIndex(
-          connBiz,
-          saveTo,
+          connBizTable(saveTo),
           (primaryKeyName, primaryColumn),
           Seq((indexName1, indexColumn1), (indexName2, indexColumn2))
         )

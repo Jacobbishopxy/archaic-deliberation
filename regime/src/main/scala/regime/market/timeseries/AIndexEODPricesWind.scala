@@ -5,7 +5,7 @@ import org.apache.spark.sql.SaveMode
 
 import regime.helper.RegimeJdbcHelper
 import regime.market.{Command, TimeSeries, RegimeTask}
-import regime.market.Common.{connMarket, connBiz}
+import regime.market.Common.{connMarket, connBiz, connBizTable}
 
 object AIndexEODPricesWind extends RegimeTask with TimeSeries {
   val appName: String = "AIndexEODPricesWind"
@@ -50,8 +50,7 @@ object AIndexEODPricesWind extends RegimeTask with TimeSeries {
         syncAll(connMarket, query, connBiz, saveTo)
       case Command.ExecuteOnce :: _ =>
         createPrimaryKeyAndIndex(
-          connBiz,
-          saveTo,
+          connBizTable(saveTo),
           (primaryKeyName, primaryColumn),
           Seq(index1, index2)
         )
