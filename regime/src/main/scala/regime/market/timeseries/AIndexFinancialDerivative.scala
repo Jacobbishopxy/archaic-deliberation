@@ -3,11 +3,11 @@ package regime.market.timeseries
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SaveMode
 
-import regime.helper.RegimeJdbcHelper
-import regime.market.{Command, TimeSeries, RegimeTask}
+import regime.helper._
+import regime.market.TimeSeries
 import regime.market.Common._
 
-object AIndexFinancialDerivative extends RegimeTask with TimeSeries {
+object AIndexFinancialDerivative extends RegimeSpark with TimeSeries {
   lazy val query = """
   SELECT
     OBJECT_ID AS object_id,

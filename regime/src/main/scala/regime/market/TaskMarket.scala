@@ -1,13 +1,11 @@
 package regime.market
 
+import regime.TaskCategory
+import regime.helper.RegimeSpark
+import regime.market.consensus._
+import regime.market.finance._
 import regime.market.information._
 import regime.market.timeseries._
-import regime.market.finance._
-import regime.helper.RegimeSpark
-
-sealed trait TaskCategory {
-  val name = this.getClass.getSimpleName.dropRight(1)
-}
 
 trait Information extends RegimeSpark {
   val appName = this.getClass.getSimpleName.dropRight(1)
@@ -23,15 +21,6 @@ trait Finance extends RegimeSpark {
 
 trait Consensus extends RegimeSpark {
   val appName = this.getClass.getSimpleName.dropRight(1)
-}
-
-object TaskCategory {
-  def unapply(str: String): TaskCategory = str match {
-    case Information.name => Information
-    case TimeSeries.name  => TimeSeries
-    case Finance.name     => Finance
-    case _                => throw new Exception(s"$str is not in TaskCategory")
-  }
 }
 
 object Information extends TaskCategory {

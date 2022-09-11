@@ -3,11 +3,11 @@ package regime.market.information
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SaveMode
 
-import regime.helper.RegimeJdbcHelper
-import regime.market.{Command, Information, RegimeTask}
+import regime.helper._
+import regime.market.Information
 import regime.market.Common.{connMarket, connBizTable}
 
-object AShareInformationCitics extends RegimeTask with Information {
+object AShareInformationCitics extends RegimeSpark with Information {
   lazy val query = """
   SELECT
     ad.OBJECT_ID AS object_id,

@@ -1,4 +1,4 @@
-package regime.market
+package regime.helper
 
 object Command {
   val Initialize             = "Initialize"

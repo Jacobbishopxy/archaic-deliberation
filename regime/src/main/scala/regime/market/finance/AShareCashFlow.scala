@@ -3,11 +3,11 @@ package regime.market.finance
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SaveMode
 
-import regime.helper.RegimeJdbcHelper
-import regime.market.{Command, Finance, RegimeTask}
+import regime.helper._
+import regime.market.Finance
 import regime.market.Common.{connMarket, connBizTable}
 
-object AShareCashFlow extends RegimeTask with Finance {
+object AShareCashFlow extends RegimeSpark with Finance {
   lazy val query = """
   SELECT
     OBJECT_ID AS object_id,
