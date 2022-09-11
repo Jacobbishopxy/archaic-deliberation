@@ -6,6 +6,7 @@ import regime.market.information._
 import regime.market.timeseries._
 import regime.market.finance._
 import regime.market._
+import regime.product.Product
 
 object Main extends App {
   implicit val sparkBuilder = SparkSession.builder()
@@ -21,6 +22,8 @@ object Main extends App {
           Finance.unapply(task).finish(commands: _*)
         case Consensus =>
           Consensus.unapply(task).finish(commands: _*)
+        case Product =>
+          Product.unapply(task).finish(commands: _*)
       }
     }
     case _ =>
