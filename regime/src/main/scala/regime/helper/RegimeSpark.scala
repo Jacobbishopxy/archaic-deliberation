@@ -2,6 +2,7 @@ package regime.helper
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SaveMode
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.util.SizeEstimator
 import org.apache.log4j.LogManager
 import org.apache.log4j.Level
@@ -44,12 +45,14 @@ trait RegimeSpark {
     * @param from
     * @param sql
     * @param to
+    * @param conversionFn
     * @param spark
     */
   def syncInitAll(
       from: Conn,
       sql: String,
-      to: ConnTable
+      to: ConnTable,
+      conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncInitAll task...")
     log.info("Checking if table exists...")
@@ -59,7 +62,7 @@ trait RegimeSpark {
       throw new Exception(s"Table $saveTo already exists, SyncAll operation is not allowed!")
 
     log.info("Loading data into memory...")
-    val df = RegimeJdbcHelper(from).readTable(sql)
+    val df = conversionFn(RegimeJdbcHelper(from).readTable(sql))
 
     log.info(s"Size estimate: ${SizeEstimator.estimate(df)}")
     log.info("Writing data into database...")
@@ -69,6 +72,12 @@ trait RegimeSpark {
     log.info("SyncInitAll task complete!")
   }
 
+  def syncInitAll(
+      from: Conn,
+      sql: String,
+      to: ConnTable
+  )(implicit spark: SparkSession): Unit = syncInitAll(from, sql, to, df => df)
+
   /** Replace all data from one table.
     *
     * All the current existing data will be dumped.
@@ -76,12 +85,14 @@ trait RegimeSpark {
     * @param from
     * @param sql
     * @param to
+    * @param conversionFn
     * @param spark
     */
   def syncReplaceAll(
       from: Conn,
       sql: String,
-      to: ConnTable
+      to: ConnTable,
+      conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncInitAll task...")
     log.info("Checking if table exists...")
@@ -89,7 +100,7 @@ trait RegimeSpark {
     val saveTo = to.table
 
     log.info("Loading data into memory...")
-    val df = RegimeJdbcHelper(from).readTable(sql)
+    val df = conversionFn(RegimeJdbcHelper(from).readTable(sql))
 
     log.info(s"Size estimate: ${SizeEstimator.estimate(df)}")
     log.info("Writing data into database...")
@@ -99,20 +110,27 @@ trait RegimeSpark {
     log.info("SyncInitAll task complete!")
   }
 
+  def syncReplaceAll(
+      from: Conn,
+      sql: String,
+      to: ConnTable
+  )(implicit spark: SparkSession): Unit = syncReplaceAll(from, sql, to, df => df)
+
   /** Sync data from one table to another by upsert.
     *
     * @param from
     * @param sql
     * @param to
     * @param onConflictColumns
-    * @param saveTo
+    * @param conversionFn
     * @param spark
     */
   def syncUpsert(
       from: Conn,
       sql: String,
       to: ConnTable,
-      onConflictColumns: Seq[String]
+      onConflictColumns: Seq[String],
+      conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncUpsert task...")
     log.info("Checking if table exists...")
@@ -131,7 +149,7 @@ trait RegimeSpark {
       """
     )
 
-    val df = RegimeJdbcHelper(from).readTable(sql)
+    val df = conversionFn(RegimeJdbcHelper(from).readTable(sql))
 
     log.info(s"Size estimate: ${SizeEstimator.estimate(df)}")
     log.info("Writing data into database...")
@@ -149,27 +167,76 @@ trait RegimeSpark {
     log.info("SyncAll task complete!")
   }
 
-  /** Sync data from the last update point.
+  def syncUpsert(
+      from: Conn,
+      sql: String,
+      to: ConnTable,
+      onConflictColumns: Seq[String]
+  )(implicit spark: SparkSession): Unit = syncUpsert(from, sql, to, onConflictColumns, df => df)
+
+  /** Sync and insert data from the last update point.
     *
     * @param from
     * @param to
     * @param querySqlCst
+    * @param conversionFn
     * @param spark
     */
   def syncInsertFromLastUpdate(
       from: ConnTableColumn,
       to: ConnTableColumn,
-      querySqlCst: String => String
+      querySqlCst: String => String,
+      conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncInsertFromLastUpdate...")
     val size = RegimeTimeHelper.insertFromLastUpdateTime(
       from,
       to,
-      querySqlCst
+      querySqlCst,
+      conversionFn
     )
 
     log.info(s"Size estimate: ${size}")
     log.info("SyncInsertFromLastUpdate task complete!")
+  }
+
+  def syncInsertFromLastUpdate(
+      from: ConnTableColumn,
+      to: ConnTableColumn,
+      querySqlCst: String => String
+  )(implicit spark: SparkSession): Unit = syncInsertFromLastUpdate(from, to, querySqlCst, df => df)
+
+  /** Sync and upsert data from the last update point.
+    *
+    * This is very useful when the source data has been changed. If the source data has some records
+    * been deleted, then removing the whole target data who matches the conditions and calling
+    * insert again is a better idea.
+    *
+    * @param from
+    * @param to
+    * @param onConflictColumns
+    * @param querySqlCst
+    * @param conversionFn
+    * @param spark
+    */
+  def syncUpsertFromLastUpdate(
+      from: ConnTableColumn,
+      to: ConnTableColumn,
+      onConflictColumns: Seq[String],
+      querySqlCst: String => String,
+      conversionFn: DataFrame => DataFrame
+  )(implicit spark: SparkSession): Unit = {
+    log.info("Starting a SyncUpsertFromLastUpdate...")
+    val size = RegimeTimeHelper.upsertFromLastUpdateTime(
+      from,
+      to,
+      onConflictColumns,
+      querySqlCst,
+      conversionFn
+    )
+
+    log.info(s"Size estimate: ${size}")
+    log.info("SyncUpsertFromLastUpdate task complete!")
   }
 
   def syncUpsertFromLastUpdate(
@@ -177,18 +244,8 @@ trait RegimeSpark {
       to: ConnTableColumn,
       onConflictColumns: Seq[String],
       querySqlCst: String => String
-  )(implicit spark: SparkSession): Unit = {
-    log.info("Starting a SyncUpsertFromLastUpdate...")
-    val size = RegimeTimeHelper.upsertFromLastUpdateTime(
-      from,
-      to,
-      onConflictColumns,
-      querySqlCst
-    )
-
-    log.info(s"Size estimate: ${size}")
-    log.info("SyncUpsertFromLastUpdate task complete!")
-  }
+  )(implicit spark: SparkSession): Unit =
+    syncUpsertFromLastUpdate(from, to, onConflictColumns, querySqlCst, df => df)
 
   // ===============================================================================================
   // ExecuteOnce functions

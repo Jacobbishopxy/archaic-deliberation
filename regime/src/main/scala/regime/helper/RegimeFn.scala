@@ -5,16 +5,15 @@ import org.apache.spark.sql.functions._
 
 object RegimeFn {
 
-  private val format1 = "yyyyMMddHHmmss"
-
-  def format_long_to_datetime(
-      df: DataFrame,
+  def formatLongToDatetime(
       originalColumnName: String,
       newColumnName: String,
       timestampFormat: String
-  ): DataFrame =
+  ): DataFrame => DataFrame = (df: DataFrame) =>
     df.withColumn(
       newColumnName,
-      to_timestamp(col(originalColumnName).cast("String"), format1)
+      to_timestamp(col(originalColumnName).cast("String"), timestampFormat)
     )
+
+  // def withCompoundColumnForPK()
 }
