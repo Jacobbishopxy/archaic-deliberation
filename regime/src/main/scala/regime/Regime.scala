@@ -2,6 +2,7 @@ package regime
 
 import org.apache.spark.sql.SparkSession
 import com.typesafe.config.Config
+import scala.collection.JavaConverters._
 
 case class Conn(
     db: String,
@@ -10,7 +11,8 @@ case class Conn(
     port: Int,
     database: String,
     user: String,
-    password: String
+    password: String,
+    extraOptions: Option[Map[String, String]]
 ) {
 
   lazy val driverType = driver match {
@@ -38,11 +40,21 @@ case class Conn(
     "driver"   -> driver,
     "user"     -> user,
     "password" -> password
-  )
+  ) ++ extraOptions.getOrElse(Map())
 }
 
 object Conn {
-  def apply(config: Config): Conn =
+  def apply(config: Config): Conn = {
+
+    val eo = Option(
+      config
+        .getObject("extraOptions")
+        .entrySet()
+        .asScala
+        .map(entry => (entry.getKey, entry.getValue().render()))
+        .toMap
+    ).filter(_.nonEmpty)
+
     Conn(
       config.getString("db"),
       config.getString("driver"),
@@ -50,8 +62,10 @@ object Conn {
       config.getInt("port"),
       config.getString("database"),
       config.getString("user"),
-      config.getString("password")
+      config.getString("password"),
+      eo
     )
+  }
 }
 
 object DriverType extends Enumeration {

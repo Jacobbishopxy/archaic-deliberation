@@ -5,6 +5,7 @@ object Command {
   val SyncAll                = "SyncAll"
   val DailyUpsert            = "DailyUpsert"
   val DailyDelete            = "DailyDelete"
+  val DailyReplace           = "DailyReplace"
   val SyncFromLastUpdate     = "SyncFromLastUpdate"
   val OverrideFromLastUpdate = "OverrideFromLastUpdate"
   val TimeFromTillNowUpsert  = "TimeFromTillNowUpsert"

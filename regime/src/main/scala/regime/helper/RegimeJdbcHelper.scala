@@ -157,7 +157,7 @@ class RegimeJdbcHelper(conn: Conn) {
     */
   private def genUnsupportedDriver(method: String): UnsupportedOperationException =
     new UnsupportedOperationException(
-      s"Unsupported driver, $method method only works on: org.postgresql.Driver/com.mysql.jdbc.Driver"
+      s"Unsupported driver, $method method only works on: org.postgresql.Driver/com.mysql.cj.jdbc.Driver"
     )
 
   /** Generate a create primary key SQL statement.
