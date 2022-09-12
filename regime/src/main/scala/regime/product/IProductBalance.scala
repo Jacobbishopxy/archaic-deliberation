@@ -29,10 +29,10 @@ object IProductBalance extends RegimeSpark with Product {
     bp.CurrentAsset AS post_asset
   FROM
     bside_ev_balancehis beb
-  LEFT JOING
-    bside_product bp 
+  LEFT JOIN
+    bside_product bp
   ON
-    beb.productNum  = bp.productNum 
+    beb.productNum  = bp.productNum
   """
 
   lazy val queryFromDate = (date: String) => query + s"""
@@ -43,19 +43,20 @@ object IProductBalance extends RegimeSpark with Product {
   WHERE beb.tradeDate > '$fromDate' AND beb.tradeDate < '$toDate'
   """
 
-  lazy val readFrom       = "bside_ev_balancehis"
-  lazy val saveTo         = "iproduct_balance"
-  lazy val readUpdateCol  = "tradeDate"
-  lazy val saveUpdateCol  = "trade_date"
-  lazy val primaryKeyName = "PK_iproduct_balance"
-  // TODO
-  lazy val primaryColumn = Seq()
-  lazy val index1        = ("IDX_iproduct_balance_1", Seq(""))
-  lazy val index2        = ("IDX_iproduct_balance_2", Seq(""))
+  lazy val readFrom          = "bside_ev_balancehis"
+  lazy val saveTo            = "iproduct_balance"
+  lazy val readUpdateCol     = "tradeDate"
+  lazy val saveUpdateCol     = "trade_date"
+  lazy val primaryKeyName    = "PK_iproduct_balance"
+  lazy val newPrimaryColName = "object_id"
+  lazy val newPKCols         = Seq("trade_date", "product_num", "subject_id")
+  lazy val primaryColumn     = Seq("object_id")
+  lazy val index1            = ("IDX_iproduct_balance_1", Seq("product_num"))
+  lazy val index2            = ("IDX_iproduct_balance_2", Seq("subject_id"))
 
-  lazy val datetimeFormat = "yyyyMMddHHmmss"
-  lazy val conversionFn =
-    RegimeFn.formatLongToDatetime(saveUpdateCol, saveUpdateCol, datetimeFormat)
+  lazy val conversionFn = RegimeFn
+    .formatLongToDatetime(saveUpdateCol, datetimeFormat)
+    .andThen(RegimeFn.concatMultipleColumns(newPrimaryColName, newPKCols, concatenateString))
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {

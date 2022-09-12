@@ -14,10 +14,14 @@ case class Conn(
 ) {
 
   lazy val driverType = driver match {
-    case "com.microsoft.sqlserver.jdbc.SQLServerDriver" => DriverType.MsSql
-    case "com.mysql.jdbc.Driver"                        => DriverType.MySql
-    case "org.postgresql.Driver"                        => DriverType.Postgres
-    case _                                              => DriverType.Other
+    case "com.microsoft.sqlserver.jdbc.SQLServerDriver" =>
+      DriverType.MsSql
+    case "com.mysql.cj.jdbc.Driver" =>
+      DriverType.MySql
+    case "org.postgresql.Driver" =>
+      DriverType.Postgres
+    case _ =>
+      DriverType.Other
   }
 
   def url: String = {

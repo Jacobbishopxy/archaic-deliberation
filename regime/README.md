@@ -10,7 +10,8 @@ Commands:
 - SyncAll
 - DailyUpsert
 - DailyDelete
-- CatchFromLastUpdate
+- SyncFromLastUpdate
+- OverrideFromLastUpdate
 - TimeFromTillNowUpsert
 - TimeFromTillNowDelete
 - TimeRangeUpsert
@@ -28,8 +29,8 @@ Commands:
 
 ### TimeSeries
 
-- [ ] AShareTradingSuspension
-- [ ] AShareEXRightDividend
+- [x] AShareTradingSuspension
+- [x] AShareEXRightDividend
 - [x] AShareEODPrices
 - [x] AShareYield
 - [x] AShareEODDerivativeIndicator
@@ -58,7 +59,9 @@ WIP
 
 ## Product
 
-WIP
+- [x] IProductInformation
+- [ ] IProductBalance
+- [ ] IProductTransaction
 
 ## Portfolio
 

@@ -31,6 +31,7 @@ object AShareEXRightDividend extends RegimeSpark with TimeSeries {
   lazy val queryFromDate = (date: String) => query + s"""
   WHERE OPDATE > '$date'
   """
+
   lazy val readFrom       = "ASHAREEXRIGHTDIVIDENDRECORD"
   lazy val saveTo         = "ashare_ex_right_dividend_record"
   lazy val readUpdateCol  = "OPDATE"
@@ -43,6 +44,11 @@ object AShareEXRightDividend extends RegimeSpark with TimeSeries {
     args.toList match {
       case Command.Initialize :: _ =>
         syncInitAll(connMarket, query, connBizTable(saveTo))
+        createPrimaryKeyAndIndex(
+          connBizTable(saveTo),
+          (primaryKeyName, primaryColumn),
+          Seq(index)
+        )
       case Command.ExecuteOnce :: _ =>
         createPrimaryKeyAndIndex(
           connBizTable(saveTo),

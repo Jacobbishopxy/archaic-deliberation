@@ -6,14 +6,14 @@ import org.apache.spark.sql.DataFrame
 import regime.helper._
 import regime.product.Common._
 
-object IProductPosition extends RegimeSpark with Product {
+object IProductTransaction extends RegimeSpark with Product {
   lazy val query = """
   SELECT
     tradeDate AS trade_date,
     productNum AS product_num,
     productName AS product_name,
     parentProductNum AS parent_product_num,
-    prodAcctType AS prod_acct_type,
+    prodAcctType AS product_account_type,
     exchId AS exch_id,
     stkId AS stock_id,
     stkName AS stock_name,
@@ -85,7 +85,7 @@ object IProductPosition extends RegimeSpark with Product {
     BBTick AS bb_tick,
     QtyF3 AS qty_f3,
     Amt3 AS amt3,
-    StkValue3 AS stock_value3,
+    StkValue3 AS stock_value3
   FROM
     bside_ev_rpt_tradesummary
   """
@@ -98,19 +98,34 @@ object IProductPosition extends RegimeSpark with Product {
   WHERE beb.tradeDate > '$fromDate' AND beb.tradeDate < '$toDate'
   """
 
-  lazy val readFrom       = "bside_ev_rpt_tradesummary"
-  lazy val saveTo         = "iproduct_trade_summary"
-  lazy val readUpdateCol  = "tradeDate"
-  lazy val saveUpdateCol  = "trade_date"
-  lazy val primaryKeyName = "PK_iproduct_trade_summary"
-  // TODO
-  lazy val primaryColumn = Seq()
-  lazy val index1        = ("IDX_iproduct_trade_summary_1", Seq(""))
-  lazy val index2        = ("IDX_iproduct_trade_summary_2", Seq(""))
+  lazy val readFrom          = "bside_ev_rpt_tradesummary"
+  lazy val saveTo            = "iproduct_transaction"
+  lazy val readUpdateCol     = "tradeDate"
+  lazy val saveUpdateCol     = "trade_date"
+  lazy val primaryKeyName    = "PK_iproduct_transaction"
+  lazy val newPrimaryColName = "object_id"
+  lazy val newPKCols = Seq(
+    "trade_date",
+    "product_num",
+    "product_account_type",
+    "exch_id",
+    "stock_id",
+    "bs_flag",
+    "hedge_flag"
+  )
+  lazy val primaryColumn = Seq("object_id")
+  lazy val index1 = (
+    "IDX_iproduct_transaction_1",
+    Seq("trade_date", "product_num", "parent_product_num", "exec_id", "stock_id")
+  )
+  lazy val index2 = (
+    "IDX_iproduct_transaction_2",
+    Seq("trade_date", "exec_id", "stock_id")
+  )
 
-  lazy val datetimeFormat = "yyyyMMddHHmmss"
-  lazy val conversionFn =
-    RegimeFn.formatLongToDatetime(saveUpdateCol, saveUpdateCol, datetimeFormat)
+  lazy val conversionFn = RegimeFn
+    .formatLongToDatetime(saveUpdateCol, datetimeFormat)
+    .andThen(RegimeFn.concatMultipleColumns(newPrimaryColName, newPKCols, concatenateString))
 
   def process(args: String*)(implicit spark: SparkSession): Unit = args.toList match {
     case Command.Initialize :: _ =>

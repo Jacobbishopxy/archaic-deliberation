@@ -6,6 +6,9 @@ env_files = [
 [env]
 APP_EXTRA_PACAKGES = "com.typesafe:config:1.4.2"
 APP_POD_MARKET = "regime-market"
+SPARK_DRIVER_CORES = "8"
+SPARK_DRIVER_MEMORY = "20g"
+SPARK_EXECUTOR_MEMORY = "20g"
 
 # cargo make --makefile spark.toml check-vars
 [tasks.check-vars]
@@ -55,8 +58,8 @@ args = [
   "${SPARK_APP_DIR}"
 ]
 
-# cargo make --makefile spark.toml exec-market Information AIndexInformation SyncAll
-[tasks.exec-market]
+# cargo make --makefile spark.toml exec-task Information AIndexInformation SyncAll
+[tasks.exec-task]
 script = '''
 kubectl run \
   --namespace ${K8S_NAMESPACE} ${APP_POD_MARKET} \
@@ -68,6 +71,9 @@ kubectl run \
   spark-submit \
   --master ${SPARK_ADDR} \
   --deploy-mode cluster \
+  --conf spark.driver.cores=${SPARK_DRIVER_CORES} \
+  --conf spark.driver.memory=${SPARK_DRIVER_MEMORY} \
+  --conf spark.executor.memory=${SPARK_EXECUTOR_MEMORY} \
   --packages ${APP_EXTRA_PACAKGES} \
   --jars ${SPARK_JARS_MSSQL},${SPARK_JARS_MYSQL},${SPARK_JARS_POSTGRES} \
   --class regime.Main \
