@@ -8,47 +8,7 @@ import regime.market.TimeSeries
 import regime.market.Common._
 
 object AIndexValuation extends RegimeSpark with TimeSeries {
-  lazy val query = """
-  SELECT
-    OBJECT_ID AS object_id,
-    S_INFO_WINDCODE AS symbol,
-    TRADE_DT AS trade_date,
-    CON_NUM,
-    PE_LYR,
-    PE_TTM,
-    PB_LF,
-    PCF_LYR,
-    PCF_TTM,
-    PS_LYR,
-    PS_TTM,
-    MV_TOTAL,
-    MV_FLOAT,
-    DIVIDEND_YIELD,
-    PEG_HIS,
-    TOT_SHR,
-    TOT_SHR_FLOAT,
-    TOT_SHR_FREE,
-    TURNOVER,
-    TURNOVER_FREE,
-    EST_NET_PROFIT_Y1,
-    EST_NET_PROFIT_Y2,
-    EST_BUS_INC_Y1,
-    EST_BUS_INC_Y2,
-    EST_EPS_Y1,
-    EST_EPS_Y2,
-    EST_YOYPROFIT_Y1,
-    EST_YOYPROFIT_Y2,
-    EST_YOYGR_Y1,
-    EST_YOYGR_Y2,
-    EST_PE_Y1,
-    EST_PE_Y2,
-    EST_PEG_Y1,
-    EST_PEG_Y2,
-    OPDATE AS update_date
-  FROM
-    AINDEXVALUATION
-  """
-
+  lazy val query = RegimeSqlHelper.fromResource("sql/market/timeseries/AIndexValuation.sql")
   lazy val queryFromDate = (date: String) => query + s"""
   WHERE OPDATE > '$date'
   """

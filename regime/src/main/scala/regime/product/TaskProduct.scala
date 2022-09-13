@@ -12,7 +12,7 @@ object Product extends TaskCategory {
   def unapply(str: String): Product = str match {
     case IProductInformation.appName => IProductInformation
     case IProductBalance.appName     => IProductBalance
-    case IProductTransaction.appName => IProductTransaction
+    case IProductPosition.appName    => IProductPosition
     case _                           => throw new Exception(s"$str is not in Product")
   }
 }

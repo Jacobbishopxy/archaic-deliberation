@@ -71,3 +71,4 @@ project/**/metals.sbt
 .bsp
 .DS_Store
 target/
+*.code-workspace

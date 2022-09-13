@@ -1,0 +1,7 @@
+
+SELECT
+  OBJECT_ID AS object_id,
+  TRADE_DAYS AS trade_days,
+  S_INFO_EXCHMARKET AS exchange
+FROM
+  ASHARECALENDAR
