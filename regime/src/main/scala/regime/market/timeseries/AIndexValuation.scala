@@ -12,7 +12,6 @@ object AIndexValuation extends RegimeSpark with TimeSeries {
   lazy val queryFromDate = (date: String) => query + s"""
   WHERE OPDATE > '$date'
   """
-
   lazy val queryDateRange = (fromDate: String, toDate: String) => query + s"""
   WHERE OPDATE > '$fromDate' AND OPDATE < '$toDate'
   """
@@ -30,6 +29,11 @@ object AIndexValuation extends RegimeSpark with TimeSeries {
     args.toList match {
       case Command.Initialize :: _ =>
         syncInitAll(connMarket, query, connBizTable(saveTo))
+        createPrimaryKeyAndIndex(
+          connBizTable(saveTo),
+          (primaryKeyName, primaryColumn),
+          Seq(index1, index2)
+        )
       case Command.ExecuteOnce :: _ =>
         createPrimaryKeyAndIndex(
           connBizTable(saveTo),

@@ -13,7 +13,6 @@ object AIndexFinancialDerivative extends RegimeSpark with TimeSeries {
   lazy val queryFromDate = (date: String) => query + s"""
   WHERE OPDATE > '$date'
   """
-
   lazy val queryDateRange = (fromDate: String, toDate: String) => query + s"""
   WHERE OPDATE > '$fromDate' AND OPDATE < '$toDate'
   """
@@ -24,13 +23,18 @@ object AIndexFinancialDerivative extends RegimeSpark with TimeSeries {
   lazy val saveUpdateCol  = "update_date"
   lazy val primaryKeyName = "PK_aindex_financial_derivative"
   lazy val primaryColumn  = Seq("object_id")
-  lazy val index1         = ("IDX_aindex_financial_derivative", Seq("update_date"))
-  lazy val index2         = ("IDX_aindex_financial_derivative", Seq("report_period", "symbol"))
+  lazy val index1         = ("IDX_aindex_financial_derivative_1", Seq("update_date"))
+  lazy val index2         = ("IDX_aindex_financial_derivative_2", Seq("report_period", "symbol"))
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
       case Command.Initialize :: _ =>
         syncInitAll(connMarket, query, connBizTable(saveTo))
+        createPrimaryKeyAndIndex(
+          connBizTable(saveTo),
+          (primaryKeyName, primaryColumn),
+          Seq(index1, index2)
+        )
       case Command.ExecuteOnce :: _ =>
         createPrimaryKeyAndIndex(
           connBizTable(saveTo),

@@ -3,7 +3,6 @@ package regime.helper
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SaveMode
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.util.SizeEstimator
 import org.apache.log4j.LogManager
 import org.apache.log4j.Level
 
@@ -64,7 +63,6 @@ trait RegimeSpark {
     log.info("Loading data into memory...")
     val df = conversionFn(RegimeJdbcHelper(from).readTable(sql))
 
-    log.info(s"Size estimate: ${SizeEstimator.estimate(df)}")
     log.info("Writing data into database...")
     helper.saveTable(df, saveTo, SaveMode.ErrorIfExists)
 
@@ -102,7 +100,6 @@ trait RegimeSpark {
     log.info("Loading data into memory...")
     val df = conversionFn(RegimeJdbcHelper(from).readTable(sql))
 
-    log.info(s"Size estimate: ${SizeEstimator.estimate(df)}")
     log.info("Writing data into database...")
     helper.saveTable(df, saveTo, SaveMode.Overwrite)
 
@@ -151,9 +148,7 @@ trait RegimeSpark {
 
     val df = conversionFn(RegimeJdbcHelper(from).readTable(sql))
 
-    log.info(s"Size estimate: ${SizeEstimator.estimate(df)}")
     log.info("Writing data into database...")
-
     helper.upsertTable(
       df,
       saveTo,
@@ -164,7 +159,7 @@ trait RegimeSpark {
     )
 
     log.info("Writing process complete!")
-    log.info("SyncAll task complete!")
+    log.info("SyncUpsert task complete!")
   }
 
   def syncUpsert(
@@ -189,14 +184,12 @@ trait RegimeSpark {
       conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncInsertFromLastUpdate...")
-    val size = RegimeTimeHelper.insertFromLastUpdateTime(
+    RegimeTimeHelper.insertFromLastUpdateTime(
       from,
       to,
       querySqlCst,
       conversionFn
     )
-
-    log.info(s"Size estimate: ${size}")
     log.info("SyncInsertFromLastUpdate task complete!")
   }
 
@@ -227,15 +220,13 @@ trait RegimeSpark {
       conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncUpsertFromLastUpdate...")
-    val size = RegimeTimeHelper.upsertFromLastUpdateTime(
+    RegimeTimeHelper.upsertFromLastUpdateTime(
       from,
       to,
       onConflictColumns,
       querySqlCst,
       conversionFn
     )
-
-    log.info(s"Size estimate: ${size}")
     log.info("SyncUpsertFromLastUpdate task complete!")
   }
 

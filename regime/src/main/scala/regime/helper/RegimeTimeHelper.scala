@@ -6,7 +6,6 @@ import org.apache.spark.sql.types.{TimestampType}
 import org.apache.spark.sql.SaveMode
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.util.SizeEstimator
 
 import regime.ConnTableColumn
 
@@ -29,8 +28,8 @@ object RegimeTimeHelper {
       sourceConn: ConnTableColumn,
       targetConn: ConnTableColumn
   )(
-      fn: (RegimeJdbcHelper, RegimeJdbcHelper, String) => Long
-  )(implicit spark: SparkSession): Option[Long] = {
+      fn: (RegimeJdbcHelper, RegimeJdbcHelper, String) => Unit
+  )(implicit spark: SparkSession): Unit = {
 
     // helpers
     val sourceHelper = RegimeJdbcHelper(sourceConn.conn)
@@ -75,7 +74,7 @@ object RegimeTimeHelper {
       targetConn: ConnTableColumn,
       querySqlCst: String => String,
       conversionFn: DataFrame => DataFrame
-  )(implicit spark: SparkSession): Option[Long] = lastUpdateTimeCurrying(sourceConn, targetConn) {
+  )(implicit spark: SparkSession): Unit = lastUpdateTimeCurrying(sourceConn, targetConn) {
     (
         sourceHelper,
         targetHelper,
@@ -84,20 +83,15 @@ object RegimeTimeHelper {
       // DataFrame from the last update point
       val df = conversionFn(sourceHelper.readTable(querySqlCst(lastUpdateTime)))
 
-      // Estimate DataFrame Size
-      val size = SizeEstimator.estimate(df)
-
       // Saving date into target table
       targetHelper.saveTable(df, targetConn.table, SaveMode.Append)
-
-      size
   }
 
   def insertFromLastUpdateTime(
       sourceConn: ConnTableColumn,
       targetConn: ConnTableColumn,
       querySqlCst: String => String
-  )(implicit spark: SparkSession): Option[Long] =
+  )(implicit spark: SparkSession): Unit =
     insertFromLastUpdateTime(sourceConn, targetConn, querySqlCst, df => df)
 
   /** Upsert from last update time.
@@ -116,7 +110,7 @@ object RegimeTimeHelper {
       onConflictColumns: Seq[String],
       querySqlCst: String => String,
       conversionFn: DataFrame => DataFrame
-  )(implicit spark: SparkSession): Option[Long] = lastUpdateTimeCurrying(sourceConn, targetConn) {
+  )(implicit spark: SparkSession): Unit = lastUpdateTimeCurrying(sourceConn, targetConn) {
     (
         sourceHelper,
         targetHelper,
@@ -124,9 +118,6 @@ object RegimeTimeHelper {
     ) =>
       // DataFrame from the last update point
       val df = conversionFn(sourceHelper.readTable(querySqlCst(lastUpdateTime)))
-
-      // Estimate DataFrame Size
-      val size = SizeEstimator.estimate(df)
 
       // Saving date into target table
       targetHelper.upsertTable(
@@ -137,8 +128,6 @@ object RegimeTimeHelper {
         onConflictColumns,
         RegimeJdbcHelper.UpsertAction.DoUpdate
       )
-
-      size
   }
 
   def upsertFromLastUpdateTime(
@@ -146,7 +135,7 @@ object RegimeTimeHelper {
       targetConn: ConnTableColumn,
       onConflictColumns: Seq[String],
       querySqlCst: String => String
-  )(implicit spark: SparkSession): Option[Long] =
+  )(implicit spark: SparkSession): Unit =
     upsertFromLastUpdateTime(sourceConn, targetConn, onConflictColumns, querySqlCst, df => df)
 
 }

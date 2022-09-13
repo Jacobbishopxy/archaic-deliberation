@@ -9,11 +9,13 @@ import regime.product.Common._
 object IProductPosition extends RegimeSpark with Product {
   lazy val query = RegimeSqlHelper.fromResource("sql/product/IProductPosition.sql")
   lazy val queryFromDate = (date: String) => query + s"""
-  WHERE beb.tradeDate > '$date'
+  WHERE tradeDate > '$date'
   """
-
   lazy val queryDateRange = (fromDate: String, toDate: String) => query + s"""
-  WHERE beb.tradeDate > '$fromDate' AND beb.tradeDate < '$toDate'
+  WHERE tradeDate > '$fromDate' AND tradeDate < '$toDate'
+  """
+  lazy val queryAtDate = (date: String) => query + s"""
+  WHERE tradeDate = '$date'
   """
 
   lazy val readFrom          = "bside_ev_rpt_tradesummary"
@@ -34,11 +36,11 @@ object IProductPosition extends RegimeSpark with Product {
   lazy val primaryColumn = Seq("object_id")
   lazy val index1 = (
     "IDX_iproduct_position_1",
-    Seq("trade_date", "product_num", "parent_product_num", "exec_id", "stock_id")
+    Seq("trade_date", "product_num", "parent_product_num", "exch_id", "stock_id")
   )
   lazy val index2 = (
     "IDX_iproduct_position_2",
-    Seq("trade_date", "exec_id", "stock_id")
+    Seq("trade_date", "exch_id", "stock_id")
   )
 
   lazy val conversionFn = RegimeFn
@@ -47,6 +49,11 @@ object IProductPosition extends RegimeSpark with Product {
 
   def process(args: String*)(implicit spark: SparkSession): Unit = args.toList match {
     case Command.Initialize :: _ =>
+      // TODO:
+      // partitionColumn, lowerBound, upperBound
+      // numPartitions
+      // queryTimeout
+      // fetchsize
       syncInitAll(
         connProduct,
         query,
@@ -65,20 +72,24 @@ object IProductPosition extends RegimeSpark with Product {
         Seq(index1, index2)
       )
     case Command.SyncFromLastUpdate :: _ =>
-      syncInsertFromLastUpdate(
-        connProductTableColumn(readFrom, readUpdateCol),
-        connBizTableColumn(saveTo, saveUpdateCol),
-        queryFromDate,
-        conversionFn
-      )
+    // TODO:
+    // trade_date has been converted to timestamp,
+    // comparison between Long (original tradeDate type) and timestamp is incorrect
+
+    // syncInsertFromLastUpdate(
+    //   connProductTableColumn(readFrom, readUpdateCol),
+    //   connBizTableColumn(saveTo, saveUpdateCol),
+    //   queryFromDate,
+    //   conversionFn
+    // )
     case Command.OverrideFromLastUpdate :: _ =>
-      syncUpsertFromLastUpdate(
-        connProductTableColumn(readFrom, readUpdateCol),
-        connBizTableColumn(saveTo, saveUpdateCol),
-        primaryColumn,
-        queryFromDate,
-        conversionFn
-      )
+    // syncUpsertFromLastUpdate(
+    //   connProductTableColumn(readFrom, readUpdateCol),
+    //   connBizTableColumn(saveTo, saveUpdateCol),
+    //   primaryColumn,
+    //   queryFromDate,
+    //   conversionFn
+    // )
     case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
       syncUpsert(
         connProduct,

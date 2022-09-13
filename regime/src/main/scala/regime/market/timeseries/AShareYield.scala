@@ -30,6 +30,11 @@ object AShareYield extends RegimeSpark with TimeSeries {
     args.toList match {
       case Command.Initialize :: _ =>
         syncInitAll(connMarket, query, connBizTable(saveTo))
+        createPrimaryKeyAndIndex(
+          connBizTable(saveTo),
+          (primaryKeyName, primaryColumn),
+          Seq(index1, index2)
+        )
       case Command.ExecuteOnce :: _ =>
         createPrimaryKeyAndIndex(
           connBizTable(saveTo),

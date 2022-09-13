@@ -38,8 +38,8 @@ Commands:
 - [x] AIndexEODPrices
 - [x] AIndexEODPricesCitics
 - [x] AIndexEODPricesWind
-- [ ] AIndexFinancialDerivative
-- [ ] AIndexValuation
+- [x] AIndexFinancialDerivative
+- [x] AIndexValuation
 
 ### Finance
 

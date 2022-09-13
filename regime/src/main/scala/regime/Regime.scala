@@ -12,7 +12,7 @@ case class Conn(
     database: String,
     user: String,
     password: String,
-    extraOptions: Option[Map[String, String]]
+    extraOptions: Map[String, String]
 ) {
 
   lazy val driverType = driver match {
@@ -40,20 +40,22 @@ case class Conn(
     "driver"   -> driver,
     "user"     -> user,
     "password" -> password
-  ) ++ extraOptions.getOrElse(Map())
+  ) ++ extraOptions
+
+  def optionsAppend(newOptions: Map[String, String]): Conn =
+    this.copy(extraOptions = this.extraOptions ++ newOptions)
+
 }
 
 object Conn {
   def apply(config: Config): Conn = {
 
-    val eo = Option(
-      config
-        .getObject("extraOptions")
-        .entrySet()
-        .asScala
-        .map(entry => (entry.getKey, entry.getValue().render()))
-        .toMap
-    ).filter(_.nonEmpty)
+    val eo = config
+      .getObject("extraOptions")
+      .entrySet()
+      .asScala
+      .map(entry => (entry.getKey, entry.getValue().render()))
+      .toMap
 
     Conn(
       config.getString("db"),

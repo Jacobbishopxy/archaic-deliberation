@@ -5,7 +5,7 @@ env_files = [
 
 [env]
 APP_EXTRA_PACAKGES = "com.typesafe:config:1.4.2"
-APP_POD_MARKET = "regime-market"
+APP_POD_TASK = "regime-task"
 SPARK_CORES_MAX = "1"
 SPARK_DRIVER_CORES = "4"
 SPARK_DRIVER_MEMORY = "20g"
@@ -64,7 +64,7 @@ args = [
 [tasks.exec-task]
 script = '''
 kubectl run \
-  --namespace ${K8S_NAMESPACE} ${APP_POD_MARKET} \
+  --namespace ${K8S_NAMESPACE} ${APP_POD_TASK} \
   --rm \
   --tty -i \
   --restart Never \
@@ -73,6 +73,8 @@ kubectl run \
   spark-submit \
   --master ${SPARK_ADDR} \
   --deploy-mode cluster \
+  --conf spark.driver.memory=${SPARK_DRIVER_MEMORY} \
+  --conf spark.executor.memory=${SPARK_EXECUTOR_MEMORY} \
   --packages ${APP_EXTRA_PACAKGES} \
   --jars ${SPARK_JARS_MSSQL},${SPARK_JARS_MYSQL},${SPARK_JARS_POSTGRES} \
   --class regime.Main \
@@ -83,7 +85,7 @@ kubectl run \
 [tasks.exec-task-0]
 script = '''
 kubectl run \
-  --namespace ${K8S_NAMESPACE} ${APP_POD_MARKET} \
+  --namespace ${K8S_NAMESPACE} ${APP_POD_TASK} \
   --rm \
   --tty -i \
   --restart Never \

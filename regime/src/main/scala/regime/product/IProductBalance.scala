@@ -7,11 +7,9 @@ import regime.product.Common._
 
 object IProductBalance extends RegimeSpark with Product {
   lazy val query = RegimeSqlHelper.fromResource("sql/product/IProductBalance.sql")
-
   lazy val queryFromDate = (date: String) => query + s"""
   WHERE beb.tradeDate > '$date'
   """
-
   lazy val queryDateRange = (fromDate: String, toDate: String) => query + s"""
   WHERE beb.tradeDate > '$fromDate' AND beb.tradeDate < '$toDate'
   """
@@ -52,20 +50,20 @@ object IProductBalance extends RegimeSpark with Product {
           Seq(index1, index2)
         )
       case Command.SyncFromLastUpdate :: _ =>
-        syncInsertFromLastUpdate(
-          connProductTableColumn(readFrom, readUpdateCol),
-          connBizTableColumn(saveTo, saveUpdateCol),
-          queryFromDate,
-          conversionFn
-        )
+      // syncInsertFromLastUpdate(
+      //   connProductTableColumn(readFrom, readUpdateCol),
+      //   connBizTableColumn(saveTo, saveUpdateCol),
+      //   queryFromDate,
+      //   conversionFn
+      // )
       case Command.OverrideFromLastUpdate :: _ =>
-        syncUpsertFromLastUpdate(
-          connProductTableColumn(readFrom, readUpdateCol),
-          connBizTableColumn(saveTo, saveUpdateCol),
-          primaryColumn,
-          queryFromDate,
-          conversionFn
-        )
+      // syncUpsertFromLastUpdate(
+      //   connProductTableColumn(readFrom, readUpdateCol),
+      //   connBizTableColumn(saveTo, saveUpdateCol),
+      //   primaryColumn,
+      //   queryFromDate,
+      //   conversionFn
+      // )
       case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
         syncUpsert(
           connProduct,
