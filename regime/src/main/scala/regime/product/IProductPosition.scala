@@ -47,15 +47,29 @@ object IProductPosition extends RegimeSpark with Product {
     .formatLongToDatetime(saveUpdateCol, datetimeFormat)
     .andThen(RegimeFn.concatMultipleColumns(newPrimaryColName, newPKCols, concatenateString))
 
+  // TODO：
+  lazy val connProductExt = connProduct.optionsAppend(
+    Map(
+      // "partitionColumn" -> "trade_date",
+      // "lowerBound"      -> "1000000",
+      // "upperBound"      -> "10000000",
+      // "numPartitions"   -> "4",
+      "queryTimeout" -> "300",
+      "fetchsize"    -> "1000"
+    )
+  )
+
+  lazy val connBizExt = connBiz.optionsAppend(
+    Map(
+      "queryTimeout" -> "300",
+      "batchsize"    -> "1000"
+    )
+  )
+
   def process(args: String*)(implicit spark: SparkSession): Unit = args.toList match {
     case Command.Initialize :: _ =>
-      // TODO:
-      // partitionColumn, lowerBound, upperBound
-      // numPartitions
-      // queryTimeout
-      // fetchsize
       syncInitAll(
-        connProduct,
+        connProductExt,
         query,
         connBizTable(saveTo),
         conversionFn
@@ -92,7 +106,7 @@ object IProductPosition extends RegimeSpark with Product {
     // )
     case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
       syncUpsert(
-        connProduct,
+        connProductExt,
         queryFromDate(timeFrom),
         connBizTable(saveTo),
         primaryColumn,
@@ -100,7 +114,7 @@ object IProductPosition extends RegimeSpark with Product {
       )
     case Command.TimeRangeUpsert :: timeFrom :: timeTo :: _ =>
       syncUpsert(
-        connProduct,
+        connProductExt,
         queryDateRange(timeFrom, timeTo),
         connBizTable(saveTo),
         primaryColumn,

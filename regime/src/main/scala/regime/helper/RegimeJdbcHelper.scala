@@ -520,7 +520,9 @@ class RegimeJdbcHelper(conn: Conn) {
 
   /** Load a DataFrame by a SQL query
     *
-    * @param spark
+    * `.option("dbtable", s"($sql) as subq")` for partitioning read (TODO)
+    *
+    * @param sparkå
     * @param sql
     * @return
     */
