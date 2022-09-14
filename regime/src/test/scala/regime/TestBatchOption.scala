@@ -4,7 +4,7 @@ import regime.helper.BatchOption
 
 object TestBatchOption extends App {
 
-  val foo = BatchOption.create("foo", 0, 10, 5).get
+  val foo = BatchOption.create("foo", true, 0, 10, 5).get
 
   val ip = foo.genIterPagination()
 
@@ -12,13 +12,17 @@ object TestBatchOption extends App {
   println(ip.next())
   println(ip.next())
   println(ip.next())
+  println(ip.next())
+  println(ip.next())
   println(ip.hasNext)
 
   /*
-  Pagination(foo,10,20)
-  Pagination(foo,20,30)
-  Pagination(foo,30,40)
-  Pagination(foo,40,50)
+  Pagination(foo,true,0,10)
+  Pagination(foo,true,10,20)
+  Pagination(foo,true,20,30)
+  Pagination(foo,true,30,40)
+  Pagination(foo,true,40,50)
+  Pagination(foo,true,50,60)
   false
    */
 }

@@ -8,6 +8,7 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.DataFrame
 
 import regime.ConnTableColumn
+import regime.DriverType
 
 /** Get the latest update time from the target table, and query the rest of data from the resource
   * table.
@@ -64,6 +65,30 @@ object RegimeSyncHelper {
       Some(fn(sourceHelper, targetHelper, lastDate))
     }
   }
+
+  private def orderDir(isAsc: Boolean): String =
+    if (isAsc) "ASC" else "DESC"
+
+  private def generatePaginationStatement(
+      conn: Conn,
+      sql: String,
+      pagination: Pagination
+  ): String = sql + (
+    conn.driverType match {
+      case DriverType.MsSql =>
+        s"""
+        ORDER BY ${pagination.orderBy} ${orderDir(pagination.isAsc)}
+        OFFSET ${pagination.offset} ROWS FETCH NEXT ${pagination.limit} ROWS ONLY
+        """
+      case DriverType.Postgres | DriverType.MySql =>
+        s"""
+        ORDER BY ${pagination.orderBy} ${orderDir(pagination.isAsc)} 
+        LIMIT ${pagination.limit} OFFSET ${pagination.offset}
+        """
+      case DriverType.Other =>
+        throw new Exception("Unsupported DriverType")
+    }
+  )
 
   // ===============================================================================================
   // general functions
@@ -151,16 +176,53 @@ object RegimeSyncHelper {
   )(implicit spark: SparkSession): Unit =
     upsertFromLastUpdateTime(sourceConn, targetConn, onConflictColumns, querySqlCst, df => df)
 
+  /** Batch insert
+    *
+    * @param sourceConn
+    * @param targetConn
+    * @param sql
+    * @param batchOption
+    * @param conversionFn
+    * @param spark
+    */
   def batchInsert(
       sourceConn: ConnTableColumn,
       targetConn: ConnTableColumn,
       sql: String,
       batchOption: BatchOption,
       conversionFn: DataFrame => DataFrame
-  ): Unit = {
-    // TODO:
+  )(implicit spark: SparkSession): Unit = {
+    // helpers
+    val sourceHelper = RegimeJdbcHelper(sourceConn.conn)
+    val targetHelper = RegimeJdbcHelper(targetConn.conn)
+
+    // batching
+    batchOption.genIterPagination().foreach { pg =>
+      val stmt = generatePaginationStatement(sourceConn.conn, sql, pg)
+      val df   = conversionFn(sourceHelper.readTable(stmt))
+
+      targetHelper.saveTable(df, targetConn.table, SaveMode.Append)
+    }
   }
 
+  def batchInsert(
+      sourceConn: ConnTableColumn,
+      targetConn: ConnTableColumn,
+      sql: String,
+      batchOption: BatchOption
+  )(implicit spark: SparkSession): Unit =
+    batchInsert(sourceConn, targetConn, sql, batchOption, df => df)
+
+  /** Batch upsert
+    *
+    * @param sourceConn
+    * @param targetConn
+    * @param onConflictColumns
+    * @param sql
+    * @param batchOption
+    * @param conversionFn
+    * @param spark
+    */
   def batchUpsert(
       sourceConn: ConnTableColumn,
       targetConn: ConnTableColumn,
@@ -168,20 +230,48 @@ object RegimeSyncHelper {
       sql: String,
       batchOption: BatchOption,
       conversionFn: DataFrame => DataFrame
-  ): Unit = {
-    // TODO:
+  )(implicit spark: SparkSession): Unit = {
+    // helpers
+    val sourceHelper = RegimeJdbcHelper(sourceConn.conn)
+    val targetHelper = RegimeJdbcHelper(targetConn.conn)
+
+    // batching
+    batchOption.genIterPagination().foreach { pg =>
+      val stmt = generatePaginationStatement(sourceConn.conn, sql, pg)
+      val df   = conversionFn(sourceHelper.readTable(stmt))
+
+      targetHelper.upsertTable(
+        df,
+        targetConn.table,
+        None,
+        false,
+        onConflictColumns,
+        RegimeJdbcHelper.UpsertAction.DoUpdate
+      )
+    }
   }
+
+  def batchUpsert(
+      sourceConn: ConnTableColumn,
+      targetConn: ConnTableColumn,
+      onConflictColumns: Seq[String],
+      sql: String,
+      batchOption: BatchOption
+  )(implicit spark: SparkSession): Unit =
+    batchUpsert(sourceConn, targetConn, onConflictColumns, sql, batchOption, df => df)
 
 }
 
 case class Pagination(
     orderBy: String,
+    isAsc: Boolean,
     limit: Int,
     offset: Int
 )
 
 case class BatchOption(
     orderBy: String,
+    isAsc: Boolean,
     lowerBound: Int, // greater than 0
     upperBound: Int, // greater than lowerBound
     callingTimes: Int
@@ -189,7 +279,7 @@ case class BatchOption(
 
   private def genPagination(i: Int): Pagination = {
     val size = upperBound - lowerBound
-    Pagination(orderBy, size * i, size * (i + 1))
+    Pagination(orderBy, isAsc, size * i, size * (i + 1))
   }
 
   def genIterPagination(): Iterator[Pagination] = {
@@ -202,14 +292,15 @@ case class BatchOption(
 object BatchOption {
   def create(
       orderBy: String,
+      isAsc: Boolean,
       lowerBound: Int,
       upperBound: Int,
       callingTimes: Int
   ): Option[BatchOption] = {
-    if (lowerBound < 0 || upperBound < 0 || callingTimes < 0 || (lowerBound > upperBound)) {
+    if (lowerBound < 0 || upperBound < 0 || callingTimes < 0 || (lowerBound >= upperBound)) {
       None
     } else {
-      Some(BatchOption(orderBy, lowerBound, upperBound, callingTimes))
+      Some(BatchOption(orderBy, isAsc, lowerBound, upperBound, callingTimes))
     }
   }
 }
