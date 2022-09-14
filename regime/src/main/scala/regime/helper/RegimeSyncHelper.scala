@@ -90,10 +90,16 @@ object RegimeSyncHelper {
     }
   )
 
+  private def generatePagesStatement(column: String, table: String): String =
+    s"""
+    SELECT COUNT(${column}) FROM ${table}
+    """
+
   // ===============================================================================================
   // general functions
   // 1. insertFromLastUpdateTime
   // 1. upsertFromLastUpdateTime
+  // 1. generateBatchOption
   // 1. batchInsert
   // 1. batchUpsert
   // ===============================================================================================
@@ -175,6 +181,30 @@ object RegimeSyncHelper {
       querySqlCst: String => String
   )(implicit spark: SparkSession): Unit =
     upsertFromLastUpdateTime(sourceConn, targetConn, onConflictColumns, querySqlCst, df => df)
+
+  /** Generate BatchOption by counting the maximum size of a table
+    *
+    * @param ctc
+    * @param orderBy
+    * @param isAsc
+    * @param fetchSize
+    * @param spark
+    * @return
+    */
+  def generateBatchOption(
+      ctc: ConnTableColumn,
+      orderBy: String,
+      isAsc: Boolean,
+      fetchSize: Int
+  )(implicit spark: SparkSession): Option[BatchOption] = {
+    val helper = RegimeJdbcHelper(ctc.conn)
+    val sql    = generatePagesStatement(ctc.column, ctc.table)
+
+    val rowsOfTable  = helper.readTable(sql).first().get(0).asInstanceOf[Int]
+    val callingTimes = math.floor(rowsOfTable / fetchSize).toInt
+
+    BatchOption.create(orderBy, isAsc, fetchSize, callingTimes)
+  }
 
   /** Batch insert
     *
@@ -272,14 +302,12 @@ case class Pagination(
 case class BatchOption(
     orderBy: String,
     isAsc: Boolean,
-    lowerBound: Int, // greater than 0
-    upperBound: Int, // greater than lowerBound
+    fetchSize: Int,
     callingTimes: Int
 ) {
 
   private def genPagination(i: Int): Pagination = {
-    val size = upperBound - lowerBound
-    Pagination(orderBy, isAsc, size * i, size * (i + 1))
+    Pagination(orderBy, isAsc, fetchSize, fetchSize * i)
   }
 
   def genIterPagination(): Iterator[Pagination] = {
@@ -293,14 +321,13 @@ object BatchOption {
   def create(
       orderBy: String,
       isAsc: Boolean,
-      lowerBound: Int,
-      upperBound: Int,
+      fetchSize: Int,
       callingTimes: Int
   ): Option[BatchOption] = {
-    if (lowerBound < 0 || upperBound < 0 || callingTimes < 0 || (lowerBound >= upperBound)) {
+    if (fetchSize < 0 || callingTimes < 0) {
       None
     } else {
-      Some(BatchOption(orderBy, isAsc, lowerBound, upperBound, callingTimes))
+      Some(BatchOption(orderBy, isAsc, fetchSize, callingTimes))
     }
   }
 }
