@@ -12,7 +12,12 @@ import regime.ConnTableColumn
 /** Get the latest update time from the target table, and query the rest of data from the resource
   * table.
   */
-object RegimeTimeHelper {
+object RegimeSyncHelper {
+
+  // ===============================================================================================
+  // private helper functions
+  // ===============================================================================================
+
   private def getMaxDate(tableName: String, columnName: String) = s"""
     SELECT MAX($columnName) AS max_$columnName FROM $tableName
     """
@@ -59,6 +64,14 @@ object RegimeTimeHelper {
       Some(fn(sourceHelper, targetHelper, lastDate))
     }
   }
+
+  // ===============================================================================================
+  // general functions
+  // 1. insertFromLastUpdateTime
+  // 1. upsertFromLastUpdateTime
+  // 1. batchInsert
+  // 1. batchUpsert
+  // ===============================================================================================
 
   /** Insert from last update time.
     *
@@ -138,4 +151,65 @@ object RegimeTimeHelper {
   )(implicit spark: SparkSession): Unit =
     upsertFromLastUpdateTime(sourceConn, targetConn, onConflictColumns, querySqlCst, df => df)
 
+  def batchInsert(
+      sourceConn: ConnTableColumn,
+      targetConn: ConnTableColumn,
+      sql: String,
+      batchOption: BatchOption,
+      conversionFn: DataFrame => DataFrame
+  ): Unit = {
+    // TODO:
+  }
+
+  def batchUpsert(
+      sourceConn: ConnTableColumn,
+      targetConn: ConnTableColumn,
+      onConflictColumns: Seq[String],
+      sql: String,
+      batchOption: BatchOption,
+      conversionFn: DataFrame => DataFrame
+  ): Unit = {
+    // TODO:
+  }
+
+}
+
+case class Pagination(
+    orderBy: String,
+    limit: Int,
+    offset: Int
+)
+
+case class BatchOption(
+    orderBy: String,
+    lowerBound: Int, // greater than 0
+    upperBound: Int, // greater than lowerBound
+    callingTimes: Int
+) {
+
+  private def genPagination(i: Int): Pagination = {
+    val size = upperBound - lowerBound
+    Pagination(orderBy, size * i, size * (i + 1))
+  }
+
+  def genIterPagination(): Iterator[Pagination] = {
+    for {
+      i <- (0 to callingTimes).iterator
+    } yield genPagination(i)
+  }
+}
+
+object BatchOption {
+  def create(
+      orderBy: String,
+      lowerBound: Int,
+      upperBound: Int,
+      callingTimes: Int
+  ): Option[BatchOption] = {
+    if (lowerBound < 0 || upperBound < 0 || callingTimes < 0 || (lowerBound > upperBound)) {
+      None
+    } else {
+      Some(BatchOption(orderBy, lowerBound, upperBound, callingTimes))
+    }
+  }
 }

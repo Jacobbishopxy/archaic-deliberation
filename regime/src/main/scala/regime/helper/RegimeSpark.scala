@@ -184,7 +184,7 @@ trait RegimeSpark {
       conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncInsertFromLastUpdate...")
-    RegimeTimeHelper.insertFromLastUpdateTime(
+    RegimeSyncHelper.insertFromLastUpdateTime(
       from,
       to,
       querySqlCst,
@@ -220,7 +220,7 @@ trait RegimeSpark {
       conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncUpsertFromLastUpdate...")
-    RegimeTimeHelper.upsertFromLastUpdateTime(
+    RegimeSyncHelper.upsertFromLastUpdateTime(
       from,
       to,
       onConflictColumns,

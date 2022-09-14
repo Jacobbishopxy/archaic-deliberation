@@ -1,4 +1,10 @@
 
+-- disallow table creation in the public schema
+
+revoke create on schema public from public;
+
+grant create on schema public to admin_user;
+
 -- create a read-only user
 
 create role dev_reader;
