@@ -63,6 +63,8 @@ object RegimeSyncHelper {
   private lazy val sourceViewName = "SOURCE_DF"
   private lazy val targetViewName = "TARGET_DF"
 
+  // TODO:
+  // should add function to handle than datetime format are not the same
   private def lastUpdateTimeCurrying(
       sourceConn: ConnTableColumn,
       targetConn: ConnTableColumn
@@ -112,7 +114,6 @@ object RegimeSyncHelper {
   /** Generate BatchOption by counting the maximum size of a table
     *
     * @param ctc
-    * @param orderBy
     * @param isAsc
     * @param fetchSize
     * @param spark
@@ -120,7 +121,6 @@ object RegimeSyncHelper {
     */
   def generateBatchOption(
       ctc: ConnTableColumn,
-      orderBy: String,
       isAsc: Boolean,
       fetchSize: Int
   )(implicit spark: SparkSession): Option[BatchOption] = {
@@ -128,11 +128,11 @@ object RegimeSyncHelper {
     val helper = RegimeJdbcHelper(ctc.conn)
     val sql    = generateCountFromStatement(ctc.column, ctc.table)
 
-    val rowsOfTable  = helper.readTable(sql).first().get(0).asInstanceOf[Int]
+    val rowsOfTable  = helper.readTable(sql).first().get(0).asInstanceOf[Long]
     val callingTimes = math.floor(rowsOfTable / fetchSize).toInt
     log.info(s"CallingTimes: $callingTimes")
 
-    BatchOption.create(orderBy, isAsc, fetchSize, callingTimes)
+    BatchOption.create(ctc.column, isAsc, fetchSize, callingTimes)
   }
 
   /** Batch insert
