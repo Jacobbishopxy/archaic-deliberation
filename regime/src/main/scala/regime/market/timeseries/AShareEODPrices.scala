@@ -16,10 +16,10 @@ object AShareEODPrices extends RegimeSpark with TimeSeries {
   WHERE OPDATE > '$fromDate' AND OPDATE < '$toDate'
   """
 
-  lazy val readFrom       = "ASHAREEODPRICES"
-  lazy val saveTo         = "ashare_eod_prices"
-  lazy val readUpdateCol  = "OPDATE"
-  lazy val saveUpdateCol  = "update_date"
+  lazy val readFrom       = connMarketTable("ASHAREEODPRICES")
+  lazy val saveTo         = connBizTable("ashare_eod_prices")
+  lazy val readFromCol    = connMarketTableColumn("ASHAREEODPRICES", "OPDATE")
+  lazy val saveToCol      = connBizTableColumn("ashare_eod_prices", "update_date")
   lazy val primaryKeyName = "PK_ashare_eod_prices"
   lazy val primaryColumn  = Seq("object_id")
   lazy val index1         = ("IDX_ashare_eod_prices_1", Seq("update_date"))
@@ -28,39 +28,48 @@ object AShareEODPrices extends RegimeSpark with TimeSeries {
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
       case Command.Initialize :: _ =>
-        syncInitAll(connMarket, query, connBizTable(saveTo))
+        syncInitAll(readFrom, saveTo, query, None)
+        createPrimaryKeyAndIndex(
+          saveTo,
+          (primaryKeyName, primaryColumn),
+          Seq(index1, index2)
+        )
       case Command.ExecuteOnce :: _ =>
         createPrimaryKeyAndIndex(
-          connBizTable(saveTo),
+          saveTo,
           (primaryKeyName, primaryColumn),
           Seq(index1, index2)
         )
       case Command.SyncFromLastUpdate :: _ =>
         syncInsertFromLastUpdate(
-          connMarketTableColumn(readFrom, readUpdateCol),
-          connBizTableColumn(saveTo, saveUpdateCol),
-          queryFromDate
+          readFromCol,
+          saveToCol,
+          queryFromDate,
+          None
         )
       case Command.OverrideFromLastUpdate :: _ =>
         syncUpsertFromLastUpdate(
-          connMarketTableColumn(readFrom, readUpdateCol),
-          connBizTableColumn(saveTo, saveUpdateCol),
+          readFromCol,
+          saveToCol,
           primaryColumn,
-          queryFromDate
+          queryFromDate,
+          None
         )
       case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
         syncUpsert(
-          connMarket,
+          readFrom,
+          saveTo,
           queryFromDate(timeFrom),
-          connBizTable(saveTo),
-          primaryColumn
+          primaryColumn,
+          None
         )
       case Command.TimeRangeUpsert :: timeFrom :: timeTo :: _ =>
         syncUpsert(
-          connMarket,
+          readFrom,
+          saveTo,
           queryDateRange(timeFrom, timeTo),
-          connBizTable(saveTo),
-          primaryColumn
+          primaryColumn,
+          None
         )
       case c @ _ =>
         log.error(c)

@@ -173,22 +173,20 @@ class RegimeJdbcHelper(conn: Conn) {
       tableName: String,
       primaryKeyName: String,
       columns: Seq[String]
-  ): String = {
-    conn.driverType match {
-      case DriverType.Postgres =>
-        s"""
-        ALTER TABLE $tableName
-        ADD CONSTRAINT $primaryKeyName
-        PRIMARY KEY (${columns.mkString(",")})
-        """
-      case DriverType.MySql =>
-        s"""
-        ALTER TABLE $tableName
-        ADD PRIMARY KEY (${columns.mkString(",")})
-        """
-      case _ =>
-        throw genUnsupportedDriver("createPrimaryKey")
-    }
+  ): String = conn.driverType match {
+    case DriverType.Postgres =>
+      s"""
+      ALTER TABLE $tableName
+      ADD CONSTRAINT $primaryKeyName
+      PRIMARY KEY (${columns.mkString(",")})
+      """
+    case DriverType.MySql =>
+      s"""
+      ALTER TABLE $tableName
+      ADD PRIMARY KEY (${columns.mkString(",")})
+      """
+    case _ =>
+      throw genUnsupportedDriver("createPrimaryKey")
   }
 
   /** Generate a drop primary key SQL statement.
@@ -520,7 +518,9 @@ class RegimeJdbcHelper(conn: Conn) {
 
   /** Load a DataFrame by a SQL query
     *
-    * @param spark
+    * `.option("dbtable", s"($sql) as subq")` for partitioning read (TODO)
+    *
+    * @param sparkå
     * @param sql
     * @return
     */

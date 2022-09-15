@@ -18,10 +18,10 @@ object IProductPosition extends RegimeSpark with Product {
   WHERE tradeDate = '$date'
   """
 
-  lazy val readFrom          = "bside_ev_rpt_tradesummary"
-  lazy val saveTo            = "iproduct_position"
-  lazy val readUpdateCol     = "tradeDate"
-  lazy val saveUpdateCol     = "trade_date"
+  lazy val readFrom          = connProductTable("bside_ev_rpt_tradesummary")
+  lazy val saveTo            = connBizTable("iproduct_position")
+  lazy val readFromCol       = connProductTableColumn("bside_ev_rpt_tradesummary", "tradeDate")
+  lazy val saveToCol         = connBizTableColumn("iproduct_position", "trade_date")
   lazy val primaryKeyName    = "PK_iproduct_position"
   lazy val newPrimaryColName = "object_id"
   lazy val newPKCols = Seq(
@@ -44,30 +44,21 @@ object IProductPosition extends RegimeSpark with Product {
   )
 
   lazy val conversionFn = RegimeFn
-    .formatLongToDatetime(saveUpdateCol, datetimeFormat)
+    .formatLongToDatetime("trade_date", datetimeFormat)
     .andThen(RegimeFn.concatMultipleColumns(newPrimaryColName, newPKCols, concatenateString))
 
   def process(args: String*)(implicit spark: SparkSession): Unit = args.toList match {
     case Command.Initialize :: _ =>
-      // TODO:
-      // partitionColumn, lowerBound, upperBound
-      // numPartitions
-      // queryTimeout
-      // fetchsize
-      syncInitAll(
-        connProduct,
-        query,
-        connBizTable(saveTo),
-        conversionFn
-      )
+      // TODO
+      syncInitAll(readFrom, saveTo, query, None)
       createPrimaryKeyAndIndex(
-        connBizTable(saveTo),
+        saveTo,
         (primaryKeyName, primaryColumn),
         Seq(index1, index2)
       )
     case Command.ExecuteOnce :: _ =>
       createPrimaryKeyAndIndex(
-        connBizTable(saveTo),
+        saveTo,
         (primaryKeyName, primaryColumn),
         Seq(index1, index2)
       )
@@ -75,36 +66,23 @@ object IProductPosition extends RegimeSpark with Product {
     // TODO:
     // trade_date has been converted to timestamp,
     // comparison between Long (original tradeDate type) and timestamp is incorrect
-
-    // syncInsertFromLastUpdate(
-    //   connProductTableColumn(readFrom, readUpdateCol),
-    //   connBizTableColumn(saveTo, saveUpdateCol),
-    //   queryFromDate,
-    //   conversionFn
-    // )
     case Command.OverrideFromLastUpdate :: _ =>
-    // syncUpsertFromLastUpdate(
-    //   connProductTableColumn(readFrom, readUpdateCol),
-    //   connBizTableColumn(saveTo, saveUpdateCol),
-    //   primaryColumn,
-    //   queryFromDate,
-    //   conversionFn
-    // )
+    // TODO
     case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
       syncUpsert(
-        connProduct,
+        readFrom,
+        saveTo,
         queryFromDate(timeFrom),
-        connBizTable(saveTo),
         primaryColumn,
-        conversionFn
+        None
       )
     case Command.TimeRangeUpsert :: timeFrom :: timeTo :: _ =>
       syncUpsert(
-        connProduct,
+        readFrom,
+        saveTo,
         queryDateRange(timeFrom, timeTo),
-        connBizTable(saveTo),
         primaryColumn,
-        conversionFn
+        None
       )
     case c @ _ =>
       log.error(c)

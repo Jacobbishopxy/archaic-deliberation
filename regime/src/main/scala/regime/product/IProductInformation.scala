@@ -3,23 +3,24 @@ package regime.product
 import org.apache.spark.sql.SparkSession
 
 import regime.helper._
-import regime.product.Common.{connProduct, connBizTable}
+import regime.product.Common._
 
 object IProductInformation extends RegimeSpark with Product {
   lazy val query          = RegimeSqlHelper.fromResource("sql/product/IProductInformation.sql")
-  lazy val saveTo         = "iproduct_information"
+  lazy val readFrom       = connProductTable("bside_product")
+  lazy val saveTo         = connBizTable("iproduct_information")
   lazy val primaryKeyName = "PK_iproduct_information"
   lazy val primaryColumn  = Seq("product_num")
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
       case Command.Initialize :: _ =>
-        syncInitAll(connProduct, query, connBizTable(saveTo))
-        createPrimaryKey(connBizTable(saveTo), primaryKeyName, primaryColumn)
+        syncInitAll(readFrom, saveTo, query, None)
+        createPrimaryKey(saveTo, primaryKeyName, primaryColumn)
       case Command.ExecuteOnce :: _ =>
-        createPrimaryKey(connBizTable(saveTo), primaryKeyName, primaryColumn)
+        createPrimaryKey(saveTo, primaryKeyName, primaryColumn)
       case Command.SyncAll :: _ =>
-        syncReplaceAll(connProduct, query, connBizTable(saveTo))
+        syncReplaceAll(readFrom, saveTo, query, None)
       case _ =>
         throw new Exception("Invalid Command")
     }

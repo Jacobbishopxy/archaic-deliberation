@@ -42,138 +42,221 @@ trait RegimeSpark {
     * Only works for the first time.
     *
     * @param from
-    * @param sql
     * @param to
+    * @param sql
+    * @param batchOption
     * @param conversionFn
     * @param spark
     */
   def syncInitAll(
-      from: Conn,
-      sql: String,
+      from: ConnTable,
       to: ConnTable,
+      sql: String,
+      batchOption: Option[BatchOption],
       conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncInitAll task...")
-    log.info("Checking if table exists...")
     val helper = RegimeJdbcHelper(to.conn)
     val saveTo = to.table
+
+    log.info("Checking if table exists...")
     if (helper.tableExists(saveTo))
       throw new Exception(s"Table $saveTo already exists, SyncAll operation is not allowed!")
 
-    log.info("Loading data into memory...")
-    val df = conversionFn(RegimeJdbcHelper(from).readTable(sql))
+    try {
+      batchOption match {
+        case None =>
+          log.info("Loading data into memory...")
+          val df = conversionFn(RegimeJdbcHelper(from.conn).readTable(sql))
 
-    log.info("Writing data into database...")
-    helper.saveTable(df, saveTo, SaveMode.ErrorIfExists)
+          log.info("Writing data into database...")
+          helper.saveTable(df, saveTo, SaveMode.ErrorIfExists)
 
-    log.info("Writing process complete!")
+          log.info("Writing process complete!")
+        case Some(bo) =>
+          RegimeSyncHelper.batchInsert(
+            from,
+            to,
+            sql,
+            bo,
+            conversionFn
+          )
+      }
+    } catch {
+      case _: Throwable =>
+        log.error(
+          s"""
+          Input parameters:
+          from: $from
+          sql: $sql
+          to: $to
+          batchOption: $batchOption
+          conversionFn: $conversionFn
+          """
+        )
+    }
+
     log.info("SyncInitAll task complete!")
   }
 
   def syncInitAll(
-      from: Conn,
+      from: ConnTable,
+      to: ConnTable,
       sql: String,
-      to: ConnTable
-  )(implicit spark: SparkSession): Unit = syncInitAll(from, sql, to, df => df)
+      batchOption: Option[BatchOption]
+  )(implicit spark: SparkSession): Unit = syncInitAll(from, to, sql, batchOption, df => df)
 
   /** Replace all data from one table.
     *
     * All the current existing data will be dumped.
     *
     * @param from
-    * @param sql
     * @param to
+    * @param sql
+    * @param batchOption
     * @param conversionFn
     * @param spark
     */
   def syncReplaceAll(
-      from: Conn,
-      sql: String,
+      from: ConnTable,
       to: ConnTable,
+      sql: String,
+      batchOption: Option[BatchOption],
       conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit = {
-    log.info("Starting a SyncInitAll task...")
-    log.info("Checking if table exists...")
+    log.info("Starting a SyncReplaceAll task...")
     val helper = RegimeJdbcHelper(to.conn)
     val saveTo = to.table
 
-    log.info("Loading data into memory...")
-    val df = conversionFn(RegimeJdbcHelper(from).readTable(sql))
+    try {
+      batchOption match {
+        case None =>
+          log.info("Loading data into memory...")
+          val df = conversionFn(RegimeJdbcHelper(from.conn).readTable(sql))
 
-    log.info("Writing data into database...")
-    helper.saveTable(df, saveTo, SaveMode.Overwrite)
+          log.info("Writing data into database...")
+          helper.saveTable(df, saveTo, SaveMode.Overwrite)
 
-    log.info("Writing process complete!")
-    log.info("SyncInitAll task complete!")
+          log.info("Writing process complete!")
+        case Some(bo) =>
+          helper.truncateTable(saveTo, false)
+          RegimeSyncHelper.batchInsert(
+            from,
+            to,
+            sql,
+            bo,
+            conversionFn
+          )
+      }
+    } catch {
+      case _: Throwable =>
+        log.error(
+          s"""
+          Input parameters:
+          from: $from
+          sql: $sql
+          to: $to
+          batchOption: $batchOption
+          conversionFn: $conversionFn
+          """
+        )
+    }
+
+    log.info("SyncReplaceAll task complete!")
   }
 
   def syncReplaceAll(
-      from: Conn,
+      from: ConnTable,
+      to: ConnTable,
       sql: String,
-      to: ConnTable
-  )(implicit spark: SparkSession): Unit = syncReplaceAll(from, sql, to, df => df)
+      batchOption: Option[BatchOption]
+  )(implicit spark: SparkSession): Unit = syncReplaceAll(from, to, sql, batchOption, df => df)
 
   /** Sync data from one table to another by upsert.
     *
     * @param from
-    * @param sql
     * @param to
+    * @param sql
     * @param onConflictColumns
+    * @param batchOption
     * @param conversionFn
     * @param spark
     */
   def syncUpsert(
-      from: Conn,
-      sql: String,
+      from: ConnTable,
       to: ConnTable,
+      sql: String,
       onConflictColumns: Seq[String],
+      batchOption: Option[BatchOption],
       conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncUpsert task...")
-    log.info("Checking if table exists...")
-    val saveTo = to.table
     val helper = RegimeJdbcHelper(to.conn)
+    val saveTo = to.table
+
+    log.info("Checking if table exists...")
     if (!helper.tableExists(saveTo))
       throw new Exception(s"Table $saveTo doesn't exists, SyncUpsert operation is not all allowed!")
 
-    log.info(
-      s"""
-      from: $from
-      sql: $sql
-      to: $to
-      onConflictColumns: $onConflictColumns
-      saveTo: $saveTo
-      """
-    )
+    try {
+      batchOption match {
+        case None =>
+          val df = conversionFn(RegimeJdbcHelper(from.conn).readTable(sql))
 
-    val df = conversionFn(RegimeJdbcHelper(from).readTable(sql))
+          log.info("Writing data into database...")
+          helper.upsertTable(
+            df,
+            saveTo,
+            None,
+            false,
+            onConflictColumns,
+            RegimeJdbcHelper.UpsertAction.DoUpdate
+          )
 
-    log.info("Writing data into database...")
-    helper.upsertTable(
-      df,
-      saveTo,
-      None,
-      false,
-      onConflictColumns,
-      RegimeJdbcHelper.UpsertAction.DoUpdate
-    )
+          log.info("Writing process complete!")
+        case Some(bo) =>
+          RegimeSyncHelper.batchUpsert(
+            from,
+            to,
+            onConflictColumns,
+            sql,
+            bo,
+            conversionFn
+          )
+      }
+    } catch {
+      case _: Throwable =>
+        log.error(
+          s"""
+          Input parameters:
+          from: $from
+          sql: $sql
+          to: $to
+          onConflictColumns: $onConflictColumns
+          batchOption: $batchOption
+          conversionFn: $conversionFn
+          """
+        )
+    }
 
-    log.info("Writing process complete!")
     log.info("SyncUpsert task complete!")
   }
 
   def syncUpsert(
-      from: Conn,
-      sql: String,
+      from: ConnTable,
       to: ConnTable,
-      onConflictColumns: Seq[String]
-  )(implicit spark: SparkSession): Unit = syncUpsert(from, sql, to, onConflictColumns, df => df)
+      sql: String,
+      onConflictColumns: Seq[String],
+      batchOption: Option[BatchOption]
+  )(implicit spark: SparkSession): Unit =
+    syncUpsert(from, to, sql, onConflictColumns, batchOption, df => df)
 
   /** Sync and insert data from the last update point.
     *
     * @param from
     * @param to
     * @param querySqlCst
+    * @param batchOption
     * @param conversionFn
     * @param spark
     */
@@ -181,13 +264,15 @@ trait RegimeSpark {
       from: ConnTableColumn,
       to: ConnTableColumn,
       querySqlCst: String => String,
+      batchOption: Option[BatchOption],
       conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncInsertFromLastUpdate...")
-    RegimeTimeHelper.insertFromLastUpdateTime(
+    RegimeSyncHelper.insertFromLastUpdateTime(
       from,
       to,
       querySqlCst,
+      batchOption,
       conversionFn
     )
     log.info("SyncInsertFromLastUpdate task complete!")
@@ -196,8 +281,10 @@ trait RegimeSpark {
   def syncInsertFromLastUpdate(
       from: ConnTableColumn,
       to: ConnTableColumn,
-      querySqlCst: String => String
-  )(implicit spark: SparkSession): Unit = syncInsertFromLastUpdate(from, to, querySqlCst, df => df)
+      querySqlCst: String => String,
+      batchOption: Option[BatchOption]
+  )(implicit spark: SparkSession): Unit =
+    syncInsertFromLastUpdate(from, to, querySqlCst, batchOption, df => df)
 
   /** Sync and upsert data from the last update point.
     *
@@ -217,14 +304,16 @@ trait RegimeSpark {
       to: ConnTableColumn,
       onConflictColumns: Seq[String],
       querySqlCst: String => String,
+      batchOption: Option[BatchOption],
       conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncUpsertFromLastUpdate...")
-    RegimeTimeHelper.upsertFromLastUpdateTime(
+    RegimeSyncHelper.upsertFromLastUpdateTime(
       from,
       to,
       onConflictColumns,
       querySqlCst,
+      batchOption,
       conversionFn
     )
     log.info("SyncUpsertFromLastUpdate task complete!")
@@ -234,9 +323,10 @@ trait RegimeSpark {
       from: ConnTableColumn,
       to: ConnTableColumn,
       onConflictColumns: Seq[String],
-      querySqlCst: String => String
+      querySqlCst: String => String,
+      batchOption: Option[BatchOption]
   )(implicit spark: SparkSession): Unit =
-    syncUpsertFromLastUpdate(from, to, onConflictColumns, querySqlCst, df => df)
+    syncUpsertFromLastUpdate(from, to, onConflictColumns, querySqlCst, batchOption, df => df)
 
   // ===============================================================================================
   // ExecuteOnce functions

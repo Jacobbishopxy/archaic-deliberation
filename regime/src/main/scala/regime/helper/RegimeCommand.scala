@@ -2,6 +2,7 @@ package regime.helper
 
 object Command {
   val Initialize             = "Initialize"
+  val Truncate               = "Truncate"
   val SyncAll                = "SyncAll"
   val DailyUpsert            = "DailyUpsert"
   val DailyDelete            = "DailyDelete"
