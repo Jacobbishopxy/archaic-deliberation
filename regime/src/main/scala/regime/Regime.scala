@@ -31,7 +31,7 @@ case class Conn(
       case DriverType.MsSql =>
         s"jdbc:$db://$host:$port;databaseName=$database;encrypt=true;trustServerCertificate=true;"
       case _ =>
-        s"jdbc:$db://$host:$port/$database"
+        s"jdbc:$db://$host:$port/$database?characterEncoding=utf8"
     }
   }
 

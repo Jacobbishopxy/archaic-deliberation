@@ -4,6 +4,7 @@ object Command {
   val Initialize             = "Initialize"
   val Truncate               = "Truncate"
   val SyncAll                = "SyncAll"
+  val ScanAll                = "ScanAll"
   val DailyUpsert            = "DailyUpsert"
   val DailyDelete            = "DailyDelete"
   val DailyReplace           = "DailyReplace"

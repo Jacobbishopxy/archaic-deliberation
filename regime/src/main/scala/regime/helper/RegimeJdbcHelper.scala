@@ -445,6 +445,13 @@ class RegimeJdbcHelper(conn: Conn) {
     }
   }
 
+  private def listIntersperse[A](list: List[A], element: A): List[A] =
+    list match {
+      case Nil          => list
+      case _ :: Nil     => list
+      case head :: tail => head :: element :: listIntersperse(tail, element)
+    }
+
   // ===============================================================================================
   // general functions
   // 1. runSaveStatement
@@ -528,6 +535,7 @@ class RegimeJdbcHelper(conn: Conn) {
     spark.read
       .format("jdbc")
       .options(conn.options)
+      .option("encoding", "UTF-8")
       .option("query", sql)
       .load()
 
@@ -578,6 +586,7 @@ class RegimeJdbcHelper(conn: Conn) {
       .format("jdbc")
       .options(conn.options)
       .option("dbtable", table)
+      .option("encoding", "UTF-8")
       .mode(mode)
       .save()
   }
@@ -591,6 +600,7 @@ class RegimeJdbcHelper(conn: Conn) {
       .format("jdbc")
       .options(conn.options)
       .option("dbtable", table)
+      .option("encoding", "UTF-8")
       .mode(mode)
       .save()
   }
@@ -671,14 +681,39 @@ class RegimeJdbcHelper(conn: Conn) {
     * @param table
     * @param conditions
     */
-  def deleteByConditions(table: String, conditions: String): Unit = {
+  def deleteByConditions(table: String, conditions: String, resp: Int => Unit): Unit = {
     val query = s"""
     DELETE FROM ${table} WHERE $conditions
     """
     val co = genConnOpt(jdbcOptionsAddTable(table))
 
-    executeUpdate(co.conn, co.opt, query)(_ => {})
+    executeUpdate(co.conn, co.opt, query)(resp)
   }
+
+  def deleteByConditions(table: String, conditions: String): Unit =
+    deleteByConditions(table, conditions, _ => {})
+
+  /** Delete null data based on selected columns
+    *
+    * @param table
+    * @param columns
+    */
+  def deleteNullValues(
+      table: String,
+      columns: Seq[String],
+      conjunction: Conjunction.Value,
+      respFn: Int => Unit
+  ): Unit = {
+    val cs         = columns.map(c => s"$c IS NULL").toList
+    val conditions = listIntersperse(cs, Conjunction.generateString(conjunction))
+    deleteByConditions(table, conditions.mkString(" "))
+  }
+
+  def deleteNullValues(
+      table: String,
+      columns: Seq[String],
+      conjunction: Conjunction.Value
+  ): Unit = deleteNullValues(table, columns, conjunction, _ => {})
 
   /** Check if a table exists
     *
@@ -1040,6 +1075,17 @@ object RegimeJdbcHelper {
           s"\nON ${DeleteOrUpdate.generateString(t)} NO ACTION"
         case ForeignKeyModifyAction.Cascade =>
           s"\nON ${DeleteOrUpdate.generateString(t)} CASCADE"
+      }
+  }
+
+  object Conjunction extends Enumeration {
+    type Conjunction = Value
+    val AND, OR = Value
+
+    def generateString(a: Value): String =
+      a match {
+        case Conjunction.AND => "AND"
+        case Conjunction.OR  => "OR"
       }
   }
 

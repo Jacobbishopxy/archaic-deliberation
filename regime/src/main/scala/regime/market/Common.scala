@@ -22,4 +22,6 @@ object Common {
   def connBizTableColumn(table: String, column: String): ConnTableColumn =
     ConnTableColumn(connBiz, table, column)
 
+  lazy val fetchSize = 10000000
+
 }

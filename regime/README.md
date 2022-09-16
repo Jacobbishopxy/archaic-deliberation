@@ -35,6 +35,7 @@ Commands:
 - [x] AShareYield
 - [x] AShareEODDerivativeIndicator
 - [x] AShareL2Indicator
+- [ ] AShareMoneyFlow
 - [x] AIndexEODPrices
 - [x] AIndexEODPricesCitics
 - [x] AIndexEODPricesWind
@@ -60,8 +61,9 @@ WIP
 ## Product
 
 - [x] IProductInformation
-- [ ] IProductBalance
-- [ ] IProductPosition
+- [x] IProductBalance
+- [x] IProductPosition
+- [ ] IProductEvaluation
 
 ## Portfolio
 

@@ -59,6 +59,7 @@ object IProductPosition extends RegimeSpark with Product {
         Seq(index1, index2)
       )
     case Command.ExecuteOnce :: _ =>
+      cleanNullData(saveTo, newPKCols, "or")
       createPrimaryKeyAndIndex(
         saveTo,
         (primaryKeyName, primaryColumn),

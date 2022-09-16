@@ -36,12 +36,8 @@ object IProductBalance extends RegimeSpark with Product {
           .generateBatchOption(readFromCol, true, fetchSize)
           .getOrElse(throw new Exception("generateBatchOption failed"))
         syncInitAll(readFrom, saveTo, query, Some(bo), conversionFn)
-        createPrimaryKeyAndIndex(
-          saveTo,
-          (primaryKeyName, primaryColumn),
-          Seq(index1, index2)
-        )
       case Command.ExecuteOnce :: _ =>
+        cleanNullData(saveTo, newPKCols, "or")
         createPrimaryKeyAndIndex(
           saveTo,
           (primaryKeyName, primaryColumn),

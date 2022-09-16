@@ -343,6 +343,40 @@ trait RegimeSpark {
       df => df
     )
 
+  /** Clean null data
+    *
+    * @param ct
+    * @param columns
+    * @param conjunction
+    * @param spark
+    */
+  def cleanNullData(
+      ct: ConnTable,
+      columns: Seq[String],
+      conjunction: RegimeJdbcHelper.Conjunction.Value
+  )(implicit spark: SparkSession): Unit = {
+    log.info("Starting a CleanNullData task...")
+    RegimeJdbcHelper(ct.conn).deleteNullValues(
+      ct.table,
+      columns,
+      conjunction,
+      res => log.info(s"Deleted $res rows")
+    )
+    log.info("CleanNullData task complete!")
+  }
+
+  def cleanNullData(
+      ct: ConnTable,
+      columns: Seq[String],
+      conjunction: String
+  )(implicit spark: SparkSession): Unit = {
+    val cj = conjunction match {
+      case "and" => RegimeJdbcHelper.Conjunction.AND
+      case "or"  => RegimeJdbcHelper.Conjunction.OR
+    }
+    cleanNullData(ct, columns, cj)
+  }
+
   // ===============================================================================================
   // ExecuteOnce functions
   // ===============================================================================================
