@@ -42,6 +42,7 @@ object AShareEODDerivativeIndicator extends RegimeSpark with TimeSeries {
           readFromCol,
           saveToCol,
           queryFromDate,
+          None,
           None
         )
       case Command.OverrideFromLastUpdate :: _ =>
@@ -50,6 +51,7 @@ object AShareEODDerivativeIndicator extends RegimeSpark with TimeSeries {
           saveToCol,
           primaryColumn,
           queryFromDate,
+          None,
           None
         )
       case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>

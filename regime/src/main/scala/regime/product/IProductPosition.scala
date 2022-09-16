@@ -52,7 +52,7 @@ object IProductPosition extends RegimeSpark with Product {
       val bo = RegimeSyncHelper
         .generateBatchOption(readFromCol, true, fetchSize)
         .getOrElse(throw new Exception("generateBatchOption failed"))
-      syncInitAll(readFrom, saveTo, query, Some(bo))
+      syncInitAll(readFrom, saveTo, query, Some(bo), conversionFn)
       createPrimaryKeyAndIndex(
         saveTo,
         (primaryKeyName, primaryColumn),
@@ -65,12 +65,22 @@ object IProductPosition extends RegimeSpark with Product {
         Seq(index1, index2)
       )
     case Command.SyncFromLastUpdate :: _ =>
-    // TODO:
-    // trade_date has been converted to timestamp,
-    // comparison between Long (original tradeDate type) and timestamp is incorrect
-    // fix: `RegimeSyncHelper` `lastUpdateTimeCurrying`
+      syncInsertFromLastUpdate(
+        readFromCol,
+        saveToCol,
+        queryFromDate,
+        None,
+        Some(convertStringToLongLikeDatetimeString)
+      )
     case Command.OverrideFromLastUpdate :: _ =>
-    // TODO
+      syncUpsertFromLastUpdate(
+        readFromCol,
+        saveToCol,
+        primaryColumn,
+        queryFromDate,
+        None,
+        Some(convertStringToLongLikeDatetimeString)
+      )
     case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
       val tf = convertStringToLongLikeDatetimeString(timeFrom)
       syncUpsert(
@@ -78,7 +88,8 @@ object IProductPosition extends RegimeSpark with Product {
         saveTo,
         queryFromDate(tf),
         primaryColumn,
-        None
+        None,
+        conversionFn
       )
     case Command.TimeRangeUpsert :: timeFrom :: timeTo :: _ =>
       val tf = convertStringToLongLikeDatetimeString(timeFrom)
@@ -88,7 +99,8 @@ object IProductPosition extends RegimeSpark with Product {
         saveTo,
         queryDateRange(tf, tt),
         primaryColumn,
-        None
+        None,
+        conversionFn
       )
     case c @ _ =>
       log.error(c)

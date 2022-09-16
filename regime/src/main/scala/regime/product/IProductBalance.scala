@@ -35,7 +35,7 @@ object IProductBalance extends RegimeSpark with Product {
         val bo = RegimeSyncHelper
           .generateBatchOption(readFromCol, true, fetchSize)
           .getOrElse(throw new Exception("generateBatchOption failed"))
-        syncInitAll(readFrom, saveTo, query, Some(bo))
+        syncInitAll(readFrom, saveTo, query, Some(bo), conversionFn)
         createPrimaryKeyAndIndex(
           saveTo,
           (primaryKeyName, primaryColumn),
@@ -48,9 +48,22 @@ object IProductBalance extends RegimeSpark with Product {
           Seq(index1, index2)
         )
       case Command.SyncFromLastUpdate :: _ =>
-      // TODO
+        syncInsertFromLastUpdate(
+          readFromCol,
+          saveToCol,
+          queryFromDate,
+          None,
+          Some(convertStringToLongLikeDatetimeString)
+        )
       case Command.OverrideFromLastUpdate :: _ =>
-      // TODO
+        syncUpsertFromLastUpdate(
+          readFromCol,
+          saveToCol,
+          primaryColumn,
+          queryFromDate,
+          None,
+          Some(convertStringToLongLikeDatetimeString)
+        )
       case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
         val tf = convertStringToLongLikeDatetimeString(timeFrom)
         syncUpsert(
@@ -58,7 +71,8 @@ object IProductBalance extends RegimeSpark with Product {
           saveTo,
           queryFromDate(tf),
           primaryColumn,
-          None
+          None,
+          conversionFn
         )
       case Command.TimeRangeUpsert :: timeFrom :: timeTo :: _ =>
         val tf = convertStringToLongLikeDatetimeString(timeFrom)
@@ -68,7 +82,8 @@ object IProductBalance extends RegimeSpark with Product {
           saveTo,
           queryDateRange(tf, tt),
           primaryColumn,
-          None
+          None,
+          conversionFn
         )
       case c @ _ =>
         log.error(c)

@@ -63,11 +63,10 @@ object RegimeSyncHelper {
   private lazy val sourceViewName = "SOURCE_DF"
   private lazy val targetViewName = "TARGET_DF"
 
-  // TODO:
-  // should add function to handle than datetime format are not the same
   private def lastUpdateTimeCurrying(
       sourceConn: ConnTableColumn,
-      targetConn: ConnTableColumn
+      targetConn: ConnTableColumn,
+      timeCvtFn: Option[String => String]
   )(
       fn: (RegimeJdbcHelper, RegimeJdbcHelper, String) => Unit
   )(implicit spark: SparkSession): Unit = {
@@ -96,7 +95,8 @@ object RegimeSyncHelper {
     if (resRow.isNullAt(0)) {
       None
     } else {
-      val lastDate = resRow.get(0).toString()
+      val ld       = resRow.get(0).toString()
+      val lastDate = timeCvtFn.fold(ld)(f => f(ld))
       log.info(s"Last date: $lastDate")
       Some(fn(sourceHelper, targetHelper, lastDate))
     }
@@ -243,43 +243,47 @@ object RegimeSyncHelper {
       targetConn: ConnTableColumn,
       querySqlCst: String => String,
       batchOption: Option[BatchOption],
+      timeCvtFn: Option[String => String],
       conversionFn: DataFrame => DataFrame
-  )(implicit spark: SparkSession): Unit = lastUpdateTimeCurrying(sourceConn, targetConn) {
-    (
-        sourceHelper,
-        targetHelper,
-        lastUpdateTime
-    ) =>
-      log.info("Starting InsertFromLastUpdateTime...")
-      batchOption match {
-        case None =>
-          // DataFrame from the last update point
-          val df = conversionFn(sourceHelper.readTable(querySqlCst(lastUpdateTime)))
-          // Saving date into target table
-          targetHelper.saveTable(df, targetConn.table, SaveMode.Append)
-        case Some(bo) =>
-          log.info("Starting BatchInsert...")
-          bo.genIterPagination.zipWithIndex.foreach { case (pg, idx) =>
-            log.info(s"Batching num: $idx")
-            log.info(s"Batching pagination: $pg")
-            val stmt = generatePaginationStatement(sourceConn.conn, querySqlCst(lastUpdateTime), pg)
-            val df   = conversionFn(sourceHelper.readTable(stmt))
-
+  )(implicit spark: SparkSession): Unit =
+    lastUpdateTimeCurrying(sourceConn, targetConn, timeCvtFn) {
+      (
+          sourceHelper,
+          targetHelper,
+          lastUpdateTime
+      ) =>
+        log.info("Starting InsertFromLastUpdateTime...")
+        batchOption match {
+          case None =>
+            // DataFrame from the last update point
+            val df = conversionFn(sourceHelper.readTable(querySqlCst(lastUpdateTime)))
+            // Saving date into target table
             targetHelper.saveTable(df, targetConn.table, SaveMode.Append)
-            log.info(s"Batching $idx saved complete")
-          }
-          log.info("BatchInsert complete!")
-      }
-      log.info("InsertFromLastUpdateTime complete!")
-  }
+          case Some(bo) =>
+            log.info("Starting BatchInsert...")
+            bo.genIterPagination.zipWithIndex.foreach { case (pg, idx) =>
+              log.info(s"Batching num: $idx")
+              log.info(s"Batching pagination: $pg")
+              val stmt =
+                generatePaginationStatement(sourceConn.conn, querySqlCst(lastUpdateTime), pg)
+              val df = conversionFn(sourceHelper.readTable(stmt))
+
+              targetHelper.saveTable(df, targetConn.table, SaveMode.Append)
+              log.info(s"Batching $idx saved complete")
+            }
+            log.info("BatchInsert complete!")
+        }
+        log.info("InsertFromLastUpdateTime complete!")
+    }
 
   def insertFromLastUpdateTime(
       sourceConn: ConnTableColumn,
       targetConn: ConnTableColumn,
       querySqlCst: String => String,
-      batchOption: Option[BatchOption]
+      batchOption: Option[BatchOption],
+      timeCvtFn: Option[String => String]
   )(implicit spark: SparkSession): Unit =
-    insertFromLastUpdateTime(sourceConn, targetConn, querySqlCst, batchOption, df => df)
+    insertFromLastUpdateTime(sourceConn, targetConn, querySqlCst, batchOption, timeCvtFn, df => df)
 
   /** Upsert from last update time.
     *
@@ -297,35 +301,21 @@ object RegimeSyncHelper {
       onConflictColumns: Seq[String],
       querySqlCst: String => String,
       batchOption: Option[BatchOption],
+      timeCvtFn: Option[String => String],
       conversionFn: DataFrame => DataFrame
-  )(implicit spark: SparkSession): Unit = lastUpdateTimeCurrying(sourceConn, targetConn) {
-    (
-        sourceHelper,
-        targetHelper,
-        lastUpdateTime
-    ) =>
-      log.info("Starting UpsertFromLastUpdateTime...")
-      batchOption match {
-        case None =>
-          // DataFrame from the last update point
-          val df = conversionFn(sourceHelper.readTable(querySqlCst(lastUpdateTime)))
-          // Saving date into target table
-          targetHelper.upsertTable(
-            df,
-            targetConn.table,
-            None,
-            false,
-            onConflictColumns,
-            RegimeJdbcHelper.UpsertAction.DoUpdate
-          )
-        case Some(bo) =>
-          log.info("Starting BatchUpsert...")
-          bo.genIterPagination.zipWithIndex.foreach { case (pg, idx) =>
-            log.info(s"Batching num: $idx")
-            log.info(s"Batching pagination: $pg")
-            val stmt = generatePaginationStatement(sourceConn.conn, querySqlCst(lastUpdateTime), pg)
-            val df   = conversionFn(sourceHelper.readTable(stmt))
-
+  )(implicit spark: SparkSession): Unit =
+    lastUpdateTimeCurrying(sourceConn, targetConn, timeCvtFn) {
+      (
+          sourceHelper,
+          targetHelper,
+          lastUpdateTime
+      ) =>
+        log.info("Starting UpsertFromLastUpdateTime...")
+        batchOption match {
+          case None =>
+            // DataFrame from the last update point
+            val df = conversionFn(sourceHelper.readTable(querySqlCst(lastUpdateTime)))
+            // Saving date into target table
             targetHelper.upsertTable(
               df,
               targetConn.table,
@@ -334,19 +324,37 @@ object RegimeSyncHelper {
               onConflictColumns,
               RegimeJdbcHelper.UpsertAction.DoUpdate
             )
-            log.info(s"Batching $idx saved complete")
-          }
-          log.info("BatchUpsert complete!")
-      }
-      log.info("UpsertFromLastUpdateTime complete!")
-  }
+          case Some(bo) =>
+            log.info("Starting BatchUpsert...")
+            bo.genIterPagination.zipWithIndex.foreach { case (pg, idx) =>
+              log.info(s"Batching num: $idx")
+              log.info(s"Batching pagination: $pg")
+              val stmt =
+                generatePaginationStatement(sourceConn.conn, querySqlCst(lastUpdateTime), pg)
+              val df = conversionFn(sourceHelper.readTable(stmt))
+
+              targetHelper.upsertTable(
+                df,
+                targetConn.table,
+                None,
+                false,
+                onConflictColumns,
+                RegimeJdbcHelper.UpsertAction.DoUpdate
+              )
+              log.info(s"Batching $idx saved complete")
+            }
+            log.info("BatchUpsert complete!")
+        }
+        log.info("UpsertFromLastUpdateTime complete!")
+    }
 
   def upsertFromLastUpdateTime(
       sourceConn: ConnTableColumn,
       targetConn: ConnTableColumn,
       onConflictColumns: Seq[String],
+      querySqlCst: String => String,
       batchOption: Option[BatchOption],
-      querySqlCst: String => String
+      timeCvtFn: Option[String => String]
   )(implicit spark: SparkSession): Unit =
     upsertFromLastUpdateTime(
       sourceConn,
@@ -354,6 +362,7 @@ object RegimeSyncHelper {
       onConflictColumns,
       querySqlCst,
       batchOption,
+      timeCvtFn,
       df => df
     )
 }

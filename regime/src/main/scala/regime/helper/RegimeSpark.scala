@@ -11,20 +11,18 @@ import regime.ConnTableColumn
 import regime.ConnTable
 
 trait RegimeSpark {
+
+  // logging
+  val log = LogManager.getRootLogger
+  log.setLevel(Level.INFO)
+
   // ===============================================================================================
   // Abstract attributes & functions
   // ===============================================================================================
 
   val appName: String
 
-  val log = LogManager.getRootLogger
-  log.setLevel(Level.INFO)
-
   def process(args: String*)(implicit spark: SparkSession): Unit
-
-  def initialize()(implicit spark: SparkSession): Unit = {
-    // Not every Spark task needs this method
-  }
 
   def finish(args: String*)(implicit sparkBuilder: SparkSession.Builder): Unit = {
     log.info(s"args: $args")
@@ -257,6 +255,7 @@ trait RegimeSpark {
     * @param to
     * @param querySqlCst
     * @param batchOption
+    * @param timeCvtFn
     * @param conversionFn
     * @param spark
     */
@@ -265,6 +264,7 @@ trait RegimeSpark {
       to: ConnTableColumn,
       querySqlCst: String => String,
       batchOption: Option[BatchOption],
+      timeCvtFn: Option[String => String],
       conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncInsertFromLastUpdate...")
@@ -273,6 +273,7 @@ trait RegimeSpark {
       to,
       querySqlCst,
       batchOption,
+      timeCvtFn,
       conversionFn
     )
     log.info("SyncInsertFromLastUpdate task complete!")
@@ -282,9 +283,10 @@ trait RegimeSpark {
       from: ConnTableColumn,
       to: ConnTableColumn,
       querySqlCst: String => String,
-      batchOption: Option[BatchOption]
+      batchOption: Option[BatchOption],
+      timeCvtFn: Option[String => String]
   )(implicit spark: SparkSession): Unit =
-    syncInsertFromLastUpdate(from, to, querySqlCst, batchOption, df => df)
+    syncInsertFromLastUpdate(from, to, querySqlCst, batchOption, timeCvtFn, df => df)
 
   /** Sync and upsert data from the last update point.
     *
@@ -296,6 +298,8 @@ trait RegimeSpark {
     * @param to
     * @param onConflictColumns
     * @param querySqlCst
+    * @param batchOption
+    * @param timeCvtFn
     * @param conversionFn
     * @param spark
     */
@@ -305,6 +309,7 @@ trait RegimeSpark {
       onConflictColumns: Seq[String],
       querySqlCst: String => String,
       batchOption: Option[BatchOption],
+      timeCvtFn: Option[String => String],
       conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncUpsertFromLastUpdate...")
@@ -314,6 +319,7 @@ trait RegimeSpark {
       onConflictColumns,
       querySqlCst,
       batchOption,
+      timeCvtFn,
       conversionFn
     )
     log.info("SyncUpsertFromLastUpdate task complete!")
@@ -324,9 +330,18 @@ trait RegimeSpark {
       to: ConnTableColumn,
       onConflictColumns: Seq[String],
       querySqlCst: String => String,
-      batchOption: Option[BatchOption]
+      batchOption: Option[BatchOption],
+      timeCvtFn: Option[String => String]
   )(implicit spark: SparkSession): Unit =
-    syncUpsertFromLastUpdate(from, to, onConflictColumns, querySqlCst, batchOption, df => df)
+    syncUpsertFromLastUpdate(
+      from,
+      to,
+      onConflictColumns,
+      querySqlCst,
+      batchOption,
+      timeCvtFn,
+      df => df
+    )
 
   // ===============================================================================================
   // ExecuteOnce functions
