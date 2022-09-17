@@ -9,8 +9,9 @@ APP_POD_TASK = "regime-task"
 SPARK_CORES_MAX = "1"
 SPARK_DRIVER_CORES = "1"
 SPARK_DRIVER_MEMORY = "1g"
-SPARK_EXECUTOR_CORES = "1"
-SPARK_EXECUTOR_MEMORY = "40g"
+SPARK_EXECUTOR_CORES = "8"
+SPARK_EXECUTOR_MEMORY = "60g"
+SPARK_EXECUTOR_EXTRAJAVAOPTIONS = "-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8"
 
 # cargo make --makefile spark.toml check-vars
 [tasks.check-vars]
@@ -75,6 +76,7 @@ kubectl run \
   --deploy-mode cluster \
   --conf spark.driver.memory=${SPARK_DRIVER_MEMORY} \
   --conf spark.executor.memory=${SPARK_EXECUTOR_MEMORY} \
+  --conf spark.executor.extraJavaOptions="${SPARK_EXECUTOR_EXTRAJAVAOPTIONS}" \
   --packages ${APP_EXTRA_PACAKGES} \
   --jars ${SPARK_JARS_MSSQL},${SPARK_JARS_MYSQL},${SPARK_JARS_POSTGRES} \
   --class regime.Main \
@@ -99,6 +101,7 @@ kubectl run \
   --conf spark.driver.memory=${SPARK_DRIVER_MEMORY} \
   --conf spark.executor.cores=${SPARK_EXECUTOR_CORES} \
   --conf spark.executor.memory=${SPARK_EXECUTOR_MEMORY} \
+  --conf spark.executor.extraJavaOptions="${SPARK_EXECUTOR_EXTRAJAVAOPTIONS}" \
   --packages ${APP_EXTRA_PACAKGES} \
   --jars ${SPARK_JARS_MSSQL},${SPARK_JARS_MYSQL},${SPARK_JARS_POSTGRES} \
   --class regime.Main \

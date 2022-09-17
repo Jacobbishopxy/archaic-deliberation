@@ -535,7 +535,7 @@ class RegimeJdbcHelper(conn: Conn) {
     spark.read
       .format("jdbc")
       .options(conn.options)
-      .option("encoding", "UTF-8")
+      // .option("encoding", "UTF-8")
       .option("query", sql)
       .load()
 
@@ -586,7 +586,7 @@ class RegimeJdbcHelper(conn: Conn) {
       .format("jdbc")
       .options(conn.options)
       .option("dbtable", table)
-      .option("encoding", "UTF-8")
+      // .option("encoding", "UTF-8")
       .mode(mode)
       .save()
   }
@@ -600,7 +600,7 @@ class RegimeJdbcHelper(conn: Conn) {
       .format("jdbc")
       .options(conn.options)
       .option("dbtable", table)
-      .option("encoding", "UTF-8")
+      // .option("encoding", "UTF-8")
       .mode(mode)
       .save()
   }

@@ -45,6 +45,7 @@ object IProductPosition extends RegimeSpark with Product {
 
   lazy val conversionFn = RegimeFn
     .formatLongToDatetime("trade_date", datetimeFormat)
+    .andThen(RegimeFn.whenNotInThen("suspended_flag", Seq("F", "N", "T", "Y", "0"), "0"))
     .andThen(RegimeFn.concatMultipleColumns(newPrimaryColName, newPKCols, concatenateString))
 
   def process(args: String*)(implicit spark: SparkSession): Unit = args.toList match {

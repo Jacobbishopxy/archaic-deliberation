@@ -10,7 +10,7 @@ object RegimeFn {
       columnName: String,
       timestampFormat: String
   ): DataFrame => DataFrame =
-    (df: DataFrame) =>
+    df =>
       df.withColumn(
         columnName,
         to_timestamp(col(columnName).cast("String"), timestampFormat)
@@ -21,7 +21,7 @@ object RegimeFn {
       originalColumnName: String,
       timestampFormat: String
   ): DataFrame => DataFrame =
-    (df: DataFrame) =>
+    df =>
       df.withColumn(
         newColumnName,
         to_timestamp(col(originalColumnName).cast("String"), timestampFormat)
@@ -32,7 +32,7 @@ object RegimeFn {
       columnNames: Seq[String],
       conStr: String
   ): DataFrame => DataFrame =
-    (df: DataFrame) => {
+    df => {
       val cc = columnNames
         .foldLeft(Seq[Column]()) { (seq, ele) =>
           seq :+ col(ele) :+ lit(conStr)
@@ -41,4 +41,39 @@ object RegimeFn {
 
       df.withColumn(newColumnName, concat(cc: _*))
     }
+
+  def fillNullValue(
+      columns: Seq[String],
+      replacedBy: String
+  ): DataFrame => DataFrame =
+    df => df.na.fill(replacedBy, columns)
+
+  def fillNullValue(
+      columns: Seq[String],
+      replacedBy: Boolean
+  ): DataFrame => DataFrame =
+    df => df.na.fill(replacedBy, columns)
+
+  def fillNullValue(
+      columns: Seq[String],
+      replacedBy: Long
+  ): DataFrame => DataFrame =
+    df => df.na.fill(replacedBy, columns)
+
+  def fillNullValue(
+      columns: Seq[String],
+      replacedBy: Double
+  ): DataFrame => DataFrame =
+    df => df.na.fill(replacedBy, columns)
+
+  def whenNotInThen[A](
+      columnName: String,
+      valueSet: Seq[A],
+      defaultValue: A
+  ): DataFrame => DataFrame =
+    df =>
+      df.withColumn(
+        columnName,
+        when(!col(columnName).isin(valueSet: _*), defaultValue).otherwise(lit(columnName))
+      )
 }

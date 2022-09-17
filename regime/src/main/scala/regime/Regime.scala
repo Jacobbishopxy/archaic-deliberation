@@ -12,6 +12,7 @@ case class Conn(
     database: String,
     user: String,
     password: String,
+    databaseOptions: String,
     extraOptions: Map[String, String]
 ) {
 
@@ -31,7 +32,9 @@ case class Conn(
       case DriverType.MsSql =>
         s"jdbc:$db://$host:$port;databaseName=$database;encrypt=true;trustServerCertificate=true;"
       case _ =>
-        s"jdbc:$db://$host:$port/$database?characterEncoding=utf8"
+        // s"jdbc:$db://$host:$port/$database?useUnicode=true&characterEncoding=UTF-8"
+        // s"jdbc:$db://$host:$port/$database?useUnicode=true&characterEncoding=GBK"
+        s"jdbc:$db://$host:$port/$database?$databaseOptions"
     }
   }
 
@@ -65,6 +68,7 @@ object Conn {
       config.getString("database"),
       config.getString("user"),
       config.getString("password"),
+      config.getString("databaseOptions"),
       eo
     )
   }

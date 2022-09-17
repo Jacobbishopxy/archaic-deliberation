@@ -81,7 +81,8 @@ trait RegimeSpark {
           )
       }
     } catch {
-      case _: Throwable =>
+      case e: Throwable =>
+        log.error(e)
         log.error(
           s"""
           Input parameters:
@@ -147,7 +148,8 @@ trait RegimeSpark {
           )
       }
     } catch {
-      case _: Throwable =>
+      case e: Throwable =>
+        log.error(e)
         log.error(
           s"""
           Input parameters:
@@ -223,7 +225,8 @@ trait RegimeSpark {
           )
       }
     } catch {
-      case _: Throwable =>
+      case e: Throwable =>
+        log.error(e)
         log.error(
           s"""
           Input parameters:
