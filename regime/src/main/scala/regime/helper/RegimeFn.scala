@@ -4,6 +4,8 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.Column
 
+import regime.Global
+
 object RegimeFn {
 
   def formatLongToDatetime(
@@ -13,7 +15,7 @@ object RegimeFn {
     df =>
       df.withColumn(
         columnName,
-        to_timestamp(col(columnName).cast("String"), timestampFormat)
+        to_timestamp(col(columnName).cast("string"), timestampFormat)
       )
 
   def formatLongToDatetime(
@@ -24,7 +26,28 @@ object RegimeFn {
     df =>
       df.withColumn(
         newColumnName,
-        to_timestamp(col(originalColumnName).cast("String"), timestampFormat)
+        to_timestamp(col(originalColumnName).cast("string"), timestampFormat)
+      )
+
+  def formatDatetimeToLong(
+      columnName: String,
+      timestampFormat: String
+  ): DataFrame => DataFrame =
+    df =>
+      df.withColumn(
+        columnName,
+        date_format(col(columnName), timestampFormat).cast("long")
+      )
+
+  def formatDatetimeToLong(
+      newColumnName: String,
+      columnName: String,
+      timestampFormat: String
+  ): DataFrame => DataFrame =
+    df =>
+      df.withColumn(
+        newColumnName,
+        date_format(col(columnName), timestampFormat).cast("long")
       )
 
   def concatMultipleColumns(
@@ -33,11 +56,7 @@ object RegimeFn {
       conStr: String
   ): DataFrame => DataFrame =
     df => {
-      val cc = columnNames
-        .foldLeft(Seq[Column]()) { (seq, ele) =>
-          seq :+ col(ele) :+ lit(conStr)
-        }
-        .dropRight(1)
+      val cc = Global.listIntersperse(columnNames.toList.map(c => col(c)), lit(conStr))
 
       df.withColumn(newColumnName, concat(cc: _*))
     }

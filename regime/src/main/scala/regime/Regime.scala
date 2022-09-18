@@ -47,7 +47,6 @@ case class Conn(
 
   def optionsAppend(newOptions: Map[String, String]): Conn =
     this.copy(extraOptions = this.extraOptions ++ newOptions)
-
 }
 
 object Conn {
@@ -90,4 +89,11 @@ case class ConnTableColumn(conn: Conn, table: String, column: String) {
 object Global {
   // Secret configs: Database connection information
   val connConfig = "conn.conf"
+
+  def listIntersperse[A](list: List[A], element: A): List[A] =
+    list match {
+      case Nil          => list
+      case _ :: Nil     => list
+      case head :: tail => head :: element :: listIntersperse(tail, element)
+    }
 }

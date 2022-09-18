@@ -24,10 +24,12 @@ object IProductBalance extends Product {
   lazy val primaryColumn     = Seq("object_id")
   lazy val index1            = ("IDX_iproduct_balance_1", Seq("product_num"))
   lazy val index2            = ("IDX_iproduct_balance_2", Seq("subject_id"))
+  lazy val index3            = ("IDX_iproduct_balance_3", Seq("trade_date"))
 
   lazy val conversionFn = RegimeFn
     .formatLongToDatetime("trade_date", datetimeFormat)
     .andThen(RegimeFn.concatMultipleColumns(newPrimaryColName, newPKCols, concatenateString))
+  lazy val reverseCvtFn = RegimeFn.formatDatetimeToLong("max_trade_date", datetimeFormat)
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
@@ -41,7 +43,7 @@ object IProductBalance extends Product {
         createPrimaryKeyAndIndex(
           saveTo,
           (primaryKeyName, primaryColumn),
-          Seq(index1, index2)
+          Seq(index1, index2, index3)
         )
       case Command.SyncFromLastUpdate :: _ =>
         syncInsertFromLastUpdate(
@@ -49,7 +51,7 @@ object IProductBalance extends Product {
           saveToCol,
           queryFromDate,
           None,
-          Some(convertStringToLongLikeDatetimeString),
+          Some(reverseCvtFn),
           conversionFn
         )
       case Command.OverrideFromLastUpdate :: _ =>
@@ -59,7 +61,7 @@ object IProductBalance extends Product {
           primaryColumn,
           queryFromDate,
           None,
-          Some(convertStringToLongLikeDatetimeString),
+          Some(reverseCvtFn),
           conversionFn
         )
       case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>

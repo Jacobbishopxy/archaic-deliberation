@@ -66,7 +66,7 @@ object RegimeSyncHelper {
   private def lastUpdateTimeCurrying(
       sourceConn: ConnTableColumn,
       targetConn: ConnTableColumn,
-      timeCvtFn: Option[String => String]
+      timeCvtFn: Option[DataFrame => DataFrame]
   )(
       fn: (RegimeJdbcHelper, RegimeJdbcHelper, String) => Unit
   )(implicit spark: SparkSession): Unit = {
@@ -76,8 +76,12 @@ object RegimeSyncHelper {
     val targetHelper = RegimeJdbcHelper(targetConn.conn)
 
     // get latest date from both tables
-    val sourceDf = sourceHelper.readTable(getMaxDate(sourceConn.table, sourceConn.column))
-    val targetDf = targetHelper.readTable(getMaxDate(targetConn.table, targetConn.column))
+    val sourceDf    = sourceHelper.readTable(getMaxDate(sourceConn.table, sourceConn.column))
+    val rawTargetDf = targetHelper.readTable(getMaxDate(targetConn.table, targetConn.column))
+    val targetDf = timeCvtFn match {
+      case None    => rawTargetDf
+      case Some(f) => f(rawTargetDf)
+    }
 
     // create temp views
     sourceDf.createOrReplaceTempView(sourceViewName)
@@ -95,8 +99,7 @@ object RegimeSyncHelper {
     if (resRow.isNullAt(0)) {
       None
     } else {
-      val ld       = resRow.get(0).toString()
-      val lastDate = timeCvtFn.fold(ld)(f => f(ld))
+      val lastDate = resRow.get(0).toString()
       log.info(s"Last date: $lastDate")
       Some(fn(sourceHelper, targetHelper, lastDate))
     }
@@ -243,7 +246,7 @@ object RegimeSyncHelper {
       targetConn: ConnTableColumn,
       querySqlCst: String => String,
       batchOption: Option[BatchOption],
-      timeCvtFn: Option[String => String],
+      timeCvtFn: Option[DataFrame => DataFrame],
       conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit =
     lastUpdateTimeCurrying(sourceConn, targetConn, timeCvtFn) {
@@ -281,7 +284,7 @@ object RegimeSyncHelper {
       targetConn: ConnTableColumn,
       querySqlCst: String => String,
       batchOption: Option[BatchOption],
-      timeCvtFn: Option[String => String]
+      timeCvtFn: Option[DataFrame => DataFrame]
   )(implicit spark: SparkSession): Unit =
     insertFromLastUpdateTime(sourceConn, targetConn, querySqlCst, batchOption, timeCvtFn, df => df)
 
@@ -301,7 +304,7 @@ object RegimeSyncHelper {
       onConflictColumns: Seq[String],
       querySqlCst: String => String,
       batchOption: Option[BatchOption],
-      timeCvtFn: Option[String => String],
+      timeCvtFn: Option[DataFrame => DataFrame],
       conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit =
     lastUpdateTimeCurrying(sourceConn, targetConn, timeCvtFn) {
@@ -354,7 +357,7 @@ object RegimeSyncHelper {
       onConflictColumns: Seq[String],
       querySqlCst: String => String,
       batchOption: Option[BatchOption],
-      timeCvtFn: Option[String => String]
+      timeCvtFn: Option[DataFrame => DataFrame]
   )(implicit spark: SparkSession): Unit =
     upsertFromLastUpdateTime(
       sourceConn,

@@ -270,7 +270,7 @@ trait RegimeSpark {
       to: ConnTableColumn,
       querySqlCst: String => String,
       batchOption: Option[BatchOption],
-      timeCvtFn: Option[String => String],
+      timeCvtFn: Option[DataFrame => DataFrame],
       conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncInsertFromLastUpdate...")
@@ -290,7 +290,7 @@ trait RegimeSpark {
       to: ConnTableColumn,
       querySqlCst: String => String,
       batchOption: Option[BatchOption],
-      timeCvtFn: Option[String => String]
+      timeCvtFn: Option[DataFrame => DataFrame]
   )(implicit spark: SparkSession): Unit =
     syncInsertFromLastUpdate(from, to, querySqlCst, batchOption, timeCvtFn, df => df)
 
@@ -315,7 +315,7 @@ trait RegimeSpark {
       onConflictColumns: Seq[String],
       querySqlCst: String => String,
       batchOption: Option[BatchOption],
-      timeCvtFn: Option[String => String],
+      timeCvtFn: Option[DataFrame => DataFrame],
       conversionFn: DataFrame => DataFrame
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a SyncUpsertFromLastUpdate...")
@@ -337,7 +337,7 @@ trait RegimeSpark {
       onConflictColumns: Seq[String],
       querySqlCst: String => String,
       batchOption: Option[BatchOption],
-      timeCvtFn: Option[String => String]
+      timeCvtFn: Option[DataFrame => DataFrame]
   )(implicit spark: SparkSession): Unit =
     syncUpsertFromLastUpdate(
       from,

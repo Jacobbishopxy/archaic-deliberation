@@ -15,6 +15,7 @@ import org.apache.spark.sql.SparkSession
 
 import regime.Conn
 import regime.DriverType
+import regime.Global
 
 class RegimeJdbcHelper(conn: Conn) {
   import RegimeJdbcHelper._
@@ -445,13 +446,6 @@ class RegimeJdbcHelper(conn: Conn) {
     }
   }
 
-  private def listIntersperse[A](list: List[A], element: A): List[A] =
-    list match {
-      case Nil          => list
-      case _ :: Nil     => list
-      case head :: tail => head :: element :: listIntersperse(tail, element)
-    }
-
   // ===============================================================================================
   // general functions
   // 1. runSaveStatement
@@ -705,7 +699,7 @@ class RegimeJdbcHelper(conn: Conn) {
       respFn: Int => Unit
   ): Unit = {
     val cs         = columns.map(c => s"$c IS NULL").toList
-    val conditions = listIntersperse(cs, Conjunction.generateString(conjunction))
+    val conditions = Global.listIntersperse(cs, Conjunction.generateString(conjunction))
     deleteByConditions(table, conditions.mkString(" "))
   }
 
