@@ -7,7 +7,7 @@ import regime.helper._
 import regime.market.TimeSeries
 import regime.market.Common._
 
-object AIndexFinancialDerivative extends RegimeSpark with TimeSeries {
+object AIndexFinancialDerivative extends TimeSeries {
   lazy val query =
     RegimeSqlHelper.fromResource("sql/market/timeseries/AIndexFinancialDerivative.sql")
   lazy val queryFromDate = (date: String) => query + s"""

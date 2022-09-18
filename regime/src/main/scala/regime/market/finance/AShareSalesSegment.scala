@@ -7,7 +7,7 @@ import regime.helper._
 import regime.market.Finance
 import regime.market.Common.{connMarket, connBiz}
 
-object AShareSalesSegment extends RegimeSpark with Finance {
+object AShareSalesSegment extends Finance {
   val query = """
   ASHARESALESSEGMENT
   """

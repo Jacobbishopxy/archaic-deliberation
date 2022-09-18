@@ -7,7 +7,7 @@ import regime.helper._
 import regime.market.TimeSeries
 import regime.market.Common._
 
-object AShareEODPrices extends RegimeSpark with TimeSeries {
+object AShareEODPrices extends TimeSeries {
   lazy val query = RegimeSqlHelper.fromResource("sql/market/timeseries/AShareEODPrices.sql")
   lazy val queryFromDate = (date: String) => query + s"""
   WHERE OPDATE > '$date'

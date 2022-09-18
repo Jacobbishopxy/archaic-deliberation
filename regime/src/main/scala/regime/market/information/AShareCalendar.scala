@@ -7,7 +7,7 @@ import regime.helper._
 import regime.market.Information
 import regime.market.Common.{connMarketTable, connBizTable}
 
-object AShareCalendar extends RegimeSpark with Information {
+object AShareCalendar extends Information {
   lazy val query      = RegimeSqlHelper.fromResource("sql/market/information/AShareCalendar.sql")
   lazy val readFrom   = connMarketTable("ASHARECALENDAR")
   lazy val saveTo     = connBizTable("ashare_calendar")

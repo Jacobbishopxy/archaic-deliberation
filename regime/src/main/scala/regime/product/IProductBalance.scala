@@ -5,7 +5,7 @@ import org.apache.spark.sql.SparkSession
 import regime.helper._
 import regime.product.Common._
 
-object IProductBalance extends RegimeSpark with Product {
+object IProductBalance extends Product {
   lazy val query = RegimeSqlHelper.fromResource("sql/product/IProductBalance.sql")
   lazy val queryFromDate = (date: String) => query + s"""
   WHERE beb.tradeDate > '$date'
@@ -49,7 +49,8 @@ object IProductBalance extends RegimeSpark with Product {
           saveToCol,
           queryFromDate,
           None,
-          Some(convertStringToLongLikeDatetimeString)
+          Some(convertStringToLongLikeDatetimeString),
+          conversionFn
         )
       case Command.OverrideFromLastUpdate :: _ =>
         syncUpsertFromLastUpdate(
@@ -58,7 +59,8 @@ object IProductBalance extends RegimeSpark with Product {
           primaryColumn,
           queryFromDate,
           None,
-          Some(convertStringToLongLikeDatetimeString)
+          Some(convertStringToLongLikeDatetimeString),
+          conversionFn
         )
       case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
         val tf = convertStringToLongLikeDatetimeString(timeFrom)

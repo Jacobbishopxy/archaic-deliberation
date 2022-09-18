@@ -7,7 +7,7 @@ import regime.helper._
 import regime.market.TimeSeries
 import regime.market.Common._
 
-object AShareEODDerivativeIndicator extends RegimeSpark with TimeSeries {
+object AShareEODDerivativeIndicator extends TimeSeries {
   lazy val query =
     RegimeSqlHelper.fromResource("sql/market/timeseries/AShareEODDerivativeIndicator.sql")
   lazy val queryFromDate = (date: String) => query + s"""

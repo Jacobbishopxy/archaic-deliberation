@@ -7,7 +7,7 @@ import regime.helper._
 import regime.market.Finance
 import regime.market.Common.{connMarket, connBiz}
 
-object AShareIssuingDatePredict extends RegimeSpark with Finance {
+object AShareIssuingDatePredict extends Finance {
   val query = """
   ASHAREISSUINGDATEPREDICT
   """

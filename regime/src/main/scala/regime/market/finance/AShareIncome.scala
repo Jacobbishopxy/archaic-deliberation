@@ -7,7 +7,7 @@ import regime.helper._
 import regime.market.Finance
 import regime.market.Common.{connMarketTable, connBizTable}
 
-object AShareIncome extends RegimeSpark with Finance {
+object AShareIncome extends Finance {
   lazy val query = RegimeSqlHelper.fromResource("sql/market/finance/AShareIncome.sql")
   lazy val queryFromDate = (date: String) => query + s"""
   WHERE OPDATE > '$date'

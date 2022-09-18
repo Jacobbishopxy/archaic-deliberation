@@ -93,6 +93,7 @@ trait RegimeSpark {
           conversionFn: $conversionFn
           """
         )
+        sys.exit()
     }
 
     log.info("SyncInitAll task complete!")
@@ -160,6 +161,7 @@ trait RegimeSpark {
           conversionFn: $conversionFn
           """
         )
+        sys.exit()
     }
 
     log.info("SyncReplaceAll task complete!")
@@ -238,6 +240,7 @@ trait RegimeSpark {
           conversionFn: $conversionFn
           """
         )
+        sys.exit()
     }
 
     log.info("SyncUpsert task complete!")

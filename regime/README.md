@@ -63,7 +63,7 @@ WIP
 - [x] IProductInformation
 - [x] IProductBalance
 - [x] IProductPosition
-- [ ] IProductEvaluation
+- [x] IProductValuation
 
 ## Portfolio
 

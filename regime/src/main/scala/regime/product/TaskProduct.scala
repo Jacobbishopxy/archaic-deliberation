@@ -13,6 +13,7 @@ object Product extends TaskCategory {
     case IProductInformation.appName => IProductInformation
     case IProductBalance.appName     => IProductBalance
     case IProductPosition.appName    => IProductPosition
+    case IProductValuation.appName   => IProductValuation
     case _                           => throw new Exception(s"$str is not in Product")
   }
 }

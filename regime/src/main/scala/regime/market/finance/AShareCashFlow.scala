@@ -7,7 +7,7 @@ import regime.helper._
 import regime.market.Finance
 import regime.market.Common.{connMarketTable, connBizTable}
 
-object AShareCashFlow extends RegimeSpark with Finance {
+object AShareCashFlow extends Finance {
   lazy val query = RegimeSqlHelper.fromResource("sql/market/finance/AShareCashFlow.sql")
 
   lazy val queryFromDate = (date: String) => query + s"""

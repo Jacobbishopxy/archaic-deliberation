@@ -76,7 +76,6 @@ kubectl run \
   --deploy-mode cluster \
   --conf spark.driver.memory=${SPARK_DRIVER_MEMORY} \
   --conf spark.executor.memory=${SPARK_EXECUTOR_MEMORY} \
-  --conf spark.executor.extraJavaOptions="${SPARK_EXECUTOR_EXTRAJAVAOPTIONS}" \
   --packages ${APP_EXTRA_PACAKGES} \
   --jars ${SPARK_JARS_MSSQL},${SPARK_JARS_MYSQL},${SPARK_JARS_POSTGRES} \
   --class regime.Main \

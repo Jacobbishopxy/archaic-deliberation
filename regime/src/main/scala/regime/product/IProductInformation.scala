@@ -5,7 +5,7 @@ import org.apache.spark.sql.SparkSession
 import regime.helper._
 import regime.product.Common._
 
-object IProductInformation extends RegimeSpark with Product {
+object IProductInformation extends Product {
   lazy val query          = RegimeSqlHelper.fromResource("sql/product/IProductInformation.sql")
   lazy val readFrom       = connProductTable("bside_product")
   lazy val saveTo         = connBizTable("iproduct_information")

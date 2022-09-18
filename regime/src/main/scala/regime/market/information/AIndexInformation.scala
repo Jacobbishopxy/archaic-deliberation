@@ -7,7 +7,7 @@ import regime.helper._
 import regime.market.Information
 import regime.market.Common.{connMarketTable, connBizTable}
 
-object AIndexInformation extends RegimeSpark with Information {
+object AIndexInformation extends Information {
   lazy val query    = RegimeSqlHelper.fromResource("sql/market/information/AIndexInformation.sql")
   lazy val readFrom = connMarketTable("AINDEXMEMBERS")
   lazy val saveTo   = connBizTable("aindex_information")
