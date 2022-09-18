@@ -29,7 +29,7 @@ object IProductBalance extends Product {
   lazy val conversionFn = RegimeFn
     .formatLongToDatetime("trade_date", datetimeFormat)
     .andThen(RegimeFn.concatMultipleColumns(newPrimaryColName, newPKCols, concatenateString))
-  lazy val reverseCvtFn = RegimeFn.formatDatetimeToLong("max_trade_date", datetimeFormat)
+  lazy val timeReverseFn = RegimeFn.formatDatetimeToLong("max_trade_date", datetimeFormat)
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
@@ -51,7 +51,7 @@ object IProductBalance extends Product {
           saveToCol,
           queryFromDate,
           None,
-          Some(reverseCvtFn),
+          Some(timeReverseFn),
           conversionFn
         )
       case Command.OverrideFromLastUpdate :: _ =>
@@ -61,7 +61,7 @@ object IProductBalance extends Product {
           primaryColumn,
           queryFromDate,
           None,
-          Some(reverseCvtFn),
+          Some(timeReverseFn),
           conversionFn
         )
       case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>

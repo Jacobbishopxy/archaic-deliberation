@@ -212,7 +212,7 @@ trait RegimeSpark {
             None,
             false,
             onConflictColumns,
-            RegimeJdbcHelper.UpsertAction.DoUpdate
+            UpsertAction.DoUpdate
           )
 
           log.info("Writing process complete!")
@@ -359,7 +359,7 @@ trait RegimeSpark {
   def cleanNullData(
       ct: ConnTable,
       columns: Seq[String],
-      conjunction: RegimeJdbcHelper.Conjunction.Value
+      conjunction: Conjunction.Value
   )(implicit spark: SparkSession): Unit = {
     log.info("Starting a CleanNullData task...")
     RegimeJdbcHelper(ct.conn).deleteNullValues(
@@ -377,8 +377,8 @@ trait RegimeSpark {
       conjunction: String
   )(implicit spark: SparkSession): Unit = {
     val cj = conjunction match {
-      case "and" => RegimeJdbcHelper.Conjunction.AND
-      case "or"  => RegimeJdbcHelper.Conjunction.OR
+      case "and" => Conjunction.AND
+      case "or"  => Conjunction.OR
     }
     cleanNullData(ct, columns, cj)
   }

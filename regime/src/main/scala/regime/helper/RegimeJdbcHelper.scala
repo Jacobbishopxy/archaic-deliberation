@@ -7,17 +7,15 @@ import org.apache.spark.sql.execution.datasources.jdbc.JdbcUtils
 import org.apache.spark.sql.jdbc.JdbcDialects
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.execution.datasources.jdbc.JDBCOptions
-import org.apache.spark.sql.connector.expressions.NamedReference
 import org.apache.spark.sql.connector.catalog.TableChange
 import org.apache.spark.sql.connector.catalog.index.TableIndex
 import org.apache.spark.sql.SaveMode
 import org.apache.spark.sql.SparkSession
 
-import regime.Conn
-import regime.DriverType
-import regime.Global
+import regime.{Conn, ConnTableColumn, DriverType, Global}
 
 class RegimeJdbcHelper(conn: Conn) {
+  import RegimeSqlHelper._
   import RegimeJdbcHelper._
 
   // ===============================================================================================
@@ -148,301 +146,6 @@ class RegimeJdbcHelper(conn: Conn) {
       f(eff)
     } finally {
       statement.close()
-    }
-  }
-
-  /** Unsupported driver announcement
-    *
-    * @param method
-    * @return
-    */
-  private def genUnsupportedDriver(method: String): UnsupportedOperationException =
-    new UnsupportedOperationException(
-      s"Unsupported driver, $method method only works on: org.postgresql.Driver/com.mysql.cj.jdbc.Driver"
-    )
-
-  /** Generate a create primary key SQL statement.
-    *
-    * Currently, only supports MySQL & PostgreSQL
-    *
-    * @param tableName
-    * @param primaryKeyName
-    * @param columns
-    * @return
-    */
-  private def generateCreatePrimaryKeyStatement(
-      tableName: String,
-      primaryKeyName: String,
-      columns: Seq[String]
-  ): String = conn.driverType match {
-    case DriverType.Postgres =>
-      s"""
-      ALTER TABLE $tableName
-      ADD CONSTRAINT $primaryKeyName
-      PRIMARY KEY (${columns.mkString(",")})
-      """
-    case DriverType.MySql =>
-      s"""
-      ALTER TABLE $tableName
-      ADD PRIMARY KEY (${columns.mkString(",")})
-      """
-    case _ =>
-      throw genUnsupportedDriver("createPrimaryKey")
-  }
-
-  /** Generate a drop primary key SQL statement.
-    *
-    * Currently, only supports MySQL & PostgreSQL
-    *
-    * @param tableName
-    * @param primaryKeyName
-    * @return
-    */
-  private def generateDropPrimaryKeyStatement(
-      tableName: String,
-      primaryKeyName: String
-  ): String = {
-    conn.driverType match {
-      case DriverType.Postgres =>
-        s"""
-        ALTER TABLE $tableName
-        DROP CONSTRAINT $primaryKeyName
-        """
-      case DriverType.MySql =>
-        s"""
-        ALTER TABLE $tableName
-        DROP PRIMARY KEY
-        """
-    }
-  }
-
-  /** Generate an upsert SQL statement.
-    *
-    * Currently, only supports MySQL & PostgreSQL
-    *
-    * @param table
-    * @param tableSchema
-    * @param conditions
-    * @param isCaseSensitive
-    * @param conflictColumns
-    * @param conflictAction
-    * @return
-    */
-  private def generateUpsertStatement(
-      table: String,
-      tableSchema: StructType,
-      conditions: Option[String],
-      isCaseSensitive: Boolean,
-      conflictColumns: Seq[String],
-      conflictAction: UpsertAction.Value
-  ): String = {
-    val columnNameEquality = if (isCaseSensitive) {
-      org.apache.spark.sql.catalyst.analysis.caseSensitiveResolution
-    } else {
-      org.apache.spark.sql.catalyst.analysis.caseInsensitiveResolution
-    }
-    val tableColumnNames  = tableSchema.fieldNames
-    val tableSchemaFields = tableSchema.fields
-    val dialect           = JdbcDialects.get(conn.url)
-
-    val columns = tableSchemaFields
-      .map { col =>
-        val normalizedName = tableColumnNames
-          .find(columnNameEquality(_, col.name))
-          .get
-        dialect.quoteIdentifier(normalizedName)
-      }
-      .mkString(",")
-
-    val conflictString = conflictColumns
-      .map(x => s""""$x"""")
-      .mkString(",")
-    val placeholders = tableSchemaFields
-      .map(_ => "?")
-      .mkString(",")
-
-    val stmt = (conn.driverType, conflictAction) match {
-      case (DriverType.Postgres, UpsertAction.DoUpdate) =>
-        val updateSet = tableColumnNames
-          .filterNot(conflictColumns.contains(_))
-          .map(n => s""""$n" = EXCLUDED."$n"""")
-          .mkString(",")
-
-        s"""
-        INSERT INTO
-          $table ($columns)
-        VALUES
-          ($placeholders)
-        ON CONFLICT
-          ($conflictString)
-        DO UPDATE SET
-          $updateSet
-        """
-      case (DriverType.Postgres, _) =>
-        s"""
-        INSERT INTO
-          $table ($columns)
-        VALUES
-          ($placeholders)
-        ON CONFLICT
-          ($conflictString)
-        DO NOTHING
-        """
-      case (DriverType.MySql, UpsertAction.DoUpdate) =>
-        val updateSet = tableColumnNames
-          .filterNot(conflictColumns.contains(_))
-          .map(n => s""""$n" = VALUES("$n")""")
-          .mkString(",")
-
-        s"""
-        INSERT INTO
-          $table ($columns)
-        VALUES
-          ($placeholders)
-        ON DUPLICATE KEY UPDATE
-          $updateSet
-        """
-      case (DriverType.MySql, _) =>
-        val updateSet = tableColumnNames
-          .filterNot(conflictColumns.contains(_))
-          .map(n => s""""$n" = "$n"""")
-          .mkString(",")
-
-        s"""
-        INSERT INTO
-          $table ($columns)
-        VALUES
-          ($placeholders)
-        ON DUPLICATE KEY UPDATE
-          $updateSet
-        """
-      case _ =>
-        throw genUnsupportedDriver("upsert")
-    }
-
-    conditions match {
-      case Some(value) => stmt ++ s"\nWHERE $value"
-      case None        => stmt
-    }
-  }
-
-  /** Generate a createIndex SQL statement
-    *
-    * @param table
-    * @param name
-    * @param columns
-    * @return
-    */
-  private def generateCreateIndexStatement(
-      table: String,
-      indexName: String,
-      columns: Seq[String]
-  ): String =
-    conn.driverType match {
-      case DriverType.Postgres =>
-        val cl = columns.map(c => s""""$c"""").mkString(",")
-        s"""
-        CREATE INDEX "$indexName" ON "$table" ($cl)
-        """
-      case DriverType.MySql =>
-        val cl = columns.map(c => s"""`$c`""").mkString(",")
-        s"""
-        CREATE INDEX `$indexName` ON `$table` ($cl)
-        """
-      case _ =>
-        throw genUnsupportedDriver("createIndex")
-    }
-
-  /** Generate a dropIndex SQL statement
-    *
-    * @param table
-    * @param name
-    * @return
-    */
-  private def generateDropIndexStatement(table: String, name: String): String =
-    conn.driverType match {
-      case DriverType.Postgres =>
-        s"""
-        DROP INDEX "$name"
-        """
-      case DriverType.MySql =>
-        s"""
-        DROP INDEX `$name` ON `$table`
-        """
-      case _ =>
-        throw genUnsupportedDriver("dropIndex")
-    }
-
-  /** Generate a createForeignKey SQL statement
-    *
-    * @param fromTable
-    * @param fromTableColumn
-    * @param foreignKeyName
-    * @param toTable
-    * @param toTableColumn
-    * @param onDelete
-    * @param onUpdate
-    * @return
-    */
-  private def generateCreateForeignKey(
-      fromTable: String,
-      fromTableColumn: String,
-      foreignKeyName: String,
-      toTable: String,
-      toTableColumn: String,
-      onDelete: Option[ForeignKeyModifyAction.Value],
-      onUpdate: Option[ForeignKeyModifyAction.Value]
-  ): String =
-    conn.driverType match {
-      case DriverType.Postgres =>
-        s"""
-        ALTER TABLE "$fromTable"
-        ADD CONSTRAINT "$foreignKeyName"
-        FOREIGN KEY ("$fromTableColumn")
-        REFERENCES "$toTable" ("$toTableColumn")
-        """ +
-          onDelete
-            .map(ForeignKeyModifyAction.generateString(_, DeleteOrUpdate.Delete))
-            .getOrElse("") +
-          onUpdate
-            .map(ForeignKeyModifyAction.generateString(_, DeleteOrUpdate.Update))
-            .getOrElse("")
-
-      case DriverType.MySql =>
-        s"""
-        ALTER TABLE `$fromTable`
-        ADD CONSTRAINT `$foreignKeyName`
-        FOREIGN KEY (`$fromTableColumn`)
-        REFERENCES `$toTable` (`$toTableColumn`)
-        """ +
-          onDelete
-            .map(ForeignKeyModifyAction.generateString(_, DeleteOrUpdate.Delete))
-            .getOrElse("") +
-          onUpdate
-            .map(ForeignKeyModifyAction.generateString(_, DeleteOrUpdate.Update))
-            .getOrElse("")
-      case _ =>
-        throw genUnsupportedDriver("createForeignKey")
-    }
-
-  /** Generate a dropForeignKey SQL statement
-    *
-    * @param table
-    * @param foreignKeyName
-    * @return
-    */
-  private def generateDropForeignKey(table: String, foreignKeyName: String): String = {
-    conn.driverType match {
-      case DriverType.Postgres =>
-        s"""
-        ALTER TABLE "$table" DROP CONSTRAINT "$foreignKeyName"
-        """
-      case DriverType.MySql =>
-        s"""
-        ALTER TABLE `$table` DROP FOREIGN KEY "$foreignKeyName"
-        """
-      case _ =>
-        throw genUnsupportedDriver("dropForeignKey")
     }
   }
 
@@ -620,6 +323,7 @@ class RegimeJdbcHelper(conn: Conn) {
       conflictAction: UpsertAction.Value
   ): Unit = {
     val upsertStmt = generateUpsertStatement(
+      conn,
       table,
       df.schema,
       conditions,
@@ -882,7 +586,7 @@ class RegimeJdbcHelper(conn: Conn) {
       primaryKeyName: String,
       columns: Seq[String]
   ): Unit = {
-    val query = generateCreatePrimaryKeyStatement(tableName, primaryKeyName, columns)
+    val query = generateCreatePrimaryKeyStatement(conn, tableName, primaryKeyName, columns)
     val co    = genConnOpt(jdbcOptionsAddTable(tableName))
 
     executeUpdate(co.conn, co.opt, query)(_ => {})
@@ -894,7 +598,7 @@ class RegimeJdbcHelper(conn: Conn) {
     * @param primaryKeyName
     */
   def dropPrimaryKey(tableName: String, primaryKeyName: String): Unit = {
-    val query = generateDropPrimaryKeyStatement(tableName, primaryKeyName)
+    val query = generateDropPrimaryKeyStatement(conn, tableName, primaryKeyName)
     val co    = genConnOpt(jdbcOptionsAddTable(tableName))
 
     executeUpdate(co.conn, co.opt, query)(_ => {})
@@ -948,7 +652,7 @@ class RegimeJdbcHelper(conn: Conn) {
       columns: Seq[String]
   ): Unit = {
     val co    = genConnOpt(jdbcOptionsAddTable(table))
-    val query = generateCreateIndexStatement(table, index, columns)
+    val query = generateCreateIndexStatement(conn, table, index, columns)
 
     executeUpdate(co.conn, co.opt, query)(_ => {})
   }
@@ -969,7 +673,7 @@ class RegimeJdbcHelper(conn: Conn) {
     * @param index
     */
   def dropIndex(table: String, index: String): Unit = {
-    val query = generateDropIndexStatement(table, index)
+    val query = generateDropIndexStatement(conn, table, index)
     val co    = genConnOpt(jdbcOptionsAddTable(table))
 
     executeUpdate(co.conn, co.opt, query)(_ => {})
@@ -1004,6 +708,7 @@ class RegimeJdbcHelper(conn: Conn) {
       onUpdate: Option[ForeignKeyModifyAction.Value]
   ): Unit = {
     val query = generateCreateForeignKey(
+      conn,
       fromTable,
       fromTableColumn,
       foreignKeyName,
@@ -1023,7 +728,7 @@ class RegimeJdbcHelper(conn: Conn) {
     * @param name
     */
   def dropForeignKey(table: String, name: String): Unit = {
-    val query = generateDropForeignKey(table, name)
+    val query = generateDropForeignKey(conn, table, name)
     val co    = genConnOpt()
 
     executeUpdate(co.conn, co.opt, query)(_ => {})
@@ -1031,57 +736,6 @@ class RegimeJdbcHelper(conn: Conn) {
 }
 
 object RegimeJdbcHelper {
-
-  /** Upsert action's enum
-    */
-  object UpsertAction extends Enumeration {
-    type UpsertAction = Value
-    val DoNothing, DoUpdate = Value
-  }
-
-  /** OnDelete/OnUpdate. Private marker
-    */
-  private object DeleteOrUpdate extends Enumeration {
-    type DeleteOrUpdate = Value
-    val Delete, Update = Value
-
-    def generateString(v: Value): String = v match {
-      case Delete => "DELETE"
-      case Update => "UPDATE"
-    }
-  }
-
-  /** ForeignKey onDelete/onUpdate's actions
-    */
-  object ForeignKeyModifyAction extends Enumeration {
-    type ForeignKeyModifyAction = Value
-    val SetNull, SetDefault, Restrict, NoAction, Cascade = Value
-
-    def generateString(a: Value, t: DeleteOrUpdate.Value): String =
-      a match {
-        case ForeignKeyModifyAction.SetNull =>
-          s"\nON ${DeleteOrUpdate.generateString(t)} SET NULL"
-        case ForeignKeyModifyAction.SetDefault =>
-          s"\nON ${DeleteOrUpdate.generateString(t)} SET DEFAULT"
-        case ForeignKeyModifyAction.Restrict =>
-          s"\nON ${DeleteOrUpdate.generateString(t)} RESTRICT"
-        case ForeignKeyModifyAction.NoAction =>
-          s"\nON ${DeleteOrUpdate.generateString(t)} NO ACTION"
-        case ForeignKeyModifyAction.Cascade =>
-          s"\nON ${DeleteOrUpdate.generateString(t)} CASCADE"
-      }
-  }
-
-  object Conjunction extends Enumeration {
-    type Conjunction = Value
-    val AND, OR = Value
-
-    def generateString(a: Value): String =
-      a match {
-        case Conjunction.AND => "AND"
-        case Conjunction.OR  => "OR"
-      }
-  }
 
   case class ConnectionOptions(conn: Connection, opt: JdbcOptionsInWrite)
 

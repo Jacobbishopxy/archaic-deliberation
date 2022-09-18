@@ -23,43 +23,6 @@ object RegimeSyncHelper {
   val log = LogManager.getRootLogger
   log.setLevel(Level.INFO)
 
-  private def orderDir(isAsc: Boolean): String =
-    if (isAsc) "ASC" else "DESC"
-
-  private def generatePaginationStatement(
-      conn: Conn,
-      sql: String,
-      pagination: Pagination
-  ): String = sql + (
-    conn.driverType match {
-      case DriverType.MsSql =>
-        s"""
-        ORDER BY ${pagination.orderBy} ${orderDir(pagination.isAsc)}
-        OFFSET ${pagination.offset} ROWS FETCH NEXT ${pagination.limit} ROWS ONLY
-        """
-      case DriverType.Postgres | DriverType.MySql =>
-        s"""
-        ORDER BY ${pagination.orderBy} ${orderDir(pagination.isAsc)}
-        LIMIT ${pagination.limit} OFFSET ${pagination.offset}
-        """
-      case DriverType.Other =>
-        throw new Exception("Unsupported DriverType")
-    }
-  )
-
-  private def generateCountFromStatement(column: String, table: String): String =
-    s"""
-    SELECT COUNT(${column}) FROM ${table}
-    """
-
-  private def getMaxDate(tableName: String, columnName: String) = s"""
-    SELECT MAX($columnName) AS max_$columnName FROM $tableName
-    """
-
-  private def getFirstValue(tableName: String, columnName: String) = s"""
-    SELECT first_value(max_$columnName) FROM $tableName
-    """
-
   private lazy val sourceViewName = "SOURCE_DF"
   private lazy val targetViewName = "TARGET_DF"
 
@@ -76,20 +39,21 @@ object RegimeSyncHelper {
     val targetHelper = RegimeJdbcHelper(targetConn.conn)
 
     // get latest date from both tables
-    val sourceDf    = sourceHelper.readTable(getMaxDate(sourceConn.table, sourceConn.column))
-    val rawTargetDf = targetHelper.readTable(getMaxDate(targetConn.table, targetConn.column))
-    val targetDf = timeCvtFn match {
-      case None    => rawTargetDf
-      case Some(f) => f(rawTargetDf)
-    }
+    val sourceDf = sourceHelper.readTable(
+      RegimeSqlHelper.generateGetMaxDate(sourceConn.table, sourceConn.column)
+    )
+    val rawTargetDf = targetHelper.readTable(
+      RegimeSqlHelper.generateGetMaxDate(targetConn.table, targetConn.column)
+    )
+    val targetDf = timeCvtFn.fold(rawTargetDf)(_(rawTargetDf))
 
     // create temp views
     sourceDf.createOrReplaceTempView(sourceViewName)
     targetDf.createOrReplaceTempView(targetViewName)
 
     // first value from each view
-    val sourceFirstValue = getFirstValue(sourceViewName, sourceConn.column)
-    val targetFirstValue = getFirstValue(targetViewName, targetConn.column)
+    val sourceFirstValue = RegimeSqlHelper.generateGetFirstValue(sourceViewName, sourceConn.column)
+    val targetFirstValue = RegimeSqlHelper.generateGetFirstValue(targetViewName, targetConn.column)
 
     val resRow = spark
       .sql(s"""SELECT if(($sourceFirstValue) > ($targetFirstValue),($targetFirstValue),NULL)""")
@@ -129,7 +93,7 @@ object RegimeSyncHelper {
   )(implicit spark: SparkSession): Option[BatchOption] = {
     log.info("Starting generate BatchOption...")
     val helper = RegimeJdbcHelper(ctc.conn)
-    val sql    = generateCountFromStatement(ctc.column, ctc.table)
+    val sql    = RegimeSqlHelper.generateCountFromStatement(ctc.column, ctc.table)
 
     val rowsOfTable  = helper.readTable(sql).first().get(0).asInstanceOf[Long]
     val callingTimes = math.floor(rowsOfTable / fetchSize).toInt
@@ -163,7 +127,7 @@ object RegimeSyncHelper {
     batchOption.genIterPagination.zipWithIndex.foreach { case (pg, idx) =>
       log.info(s"Batching num: $idx")
       log.info(s"Batching pagination: $pg")
-      val stmt = generatePaginationStatement(sourceConn.conn, sql, pg)
+      val stmt = RegimeSqlHelper.generatePaginationStatement(sourceConn.conn, sql, pg)
       val df   = conversionFn(sourceHelper.readTable(stmt))
 
       targetHelper.saveTable(df, targetConn.table, SaveMode.Append)
@@ -207,7 +171,7 @@ object RegimeSyncHelper {
     batchOption.genIterPagination.zipWithIndex.foreach { case (pg, idx) =>
       log.info(s"Batching num: $idx")
       log.info(s"Batching pagination: $pg")
-      val stmt = generatePaginationStatement(sourceConn.conn, sql, pg)
+      val stmt = RegimeSqlHelper.generatePaginationStatement(sourceConn.conn, sql, pg)
       val df   = conversionFn(sourceHelper.readTable(stmt))
 
       targetHelper.upsertTable(
@@ -216,7 +180,7 @@ object RegimeSyncHelper {
         None,
         false,
         onConflictColumns,
-        RegimeJdbcHelper.UpsertAction.DoUpdate
+        UpsertAction.DoUpdate
       )
       log.info(s"Batching $idx saved complete")
     }
@@ -267,8 +231,11 @@ object RegimeSyncHelper {
             bo.genIterPagination.zipWithIndex.foreach { case (pg, idx) =>
               log.info(s"Batching num: $idx")
               log.info(s"Batching pagination: $pg")
-              val stmt =
-                generatePaginationStatement(sourceConn.conn, querySqlCst(lastUpdateTime), pg)
+              val stmt = RegimeSqlHelper.generatePaginationStatement(
+                sourceConn.conn,
+                querySqlCst(lastUpdateTime),
+                pg
+              )
               val df = conversionFn(sourceHelper.readTable(stmt))
 
               targetHelper.saveTable(df, targetConn.table, SaveMode.Append)
@@ -325,15 +292,18 @@ object RegimeSyncHelper {
               None,
               false,
               onConflictColumns,
-              RegimeJdbcHelper.UpsertAction.DoUpdate
+              UpsertAction.DoUpdate
             )
           case Some(bo) =>
             log.info("Starting BatchUpsert...")
             bo.genIterPagination.zipWithIndex.foreach { case (pg, idx) =>
               log.info(s"Batching num: $idx")
               log.info(s"Batching pagination: $pg")
-              val stmt =
-                generatePaginationStatement(sourceConn.conn, querySqlCst(lastUpdateTime), pg)
+              val stmt = RegimeSqlHelper.generatePaginationStatement(
+                sourceConn.conn,
+                querySqlCst(lastUpdateTime),
+                pg
+              )
               val df = conversionFn(sourceHelper.readTable(stmt))
 
               targetHelper.upsertTable(
@@ -342,7 +312,7 @@ object RegimeSyncHelper {
                 None,
                 false,
                 onConflictColumns,
-                RegimeJdbcHelper.UpsertAction.DoUpdate
+                UpsertAction.DoUpdate
               )
               log.info(s"Batching $idx saved complete")
             }
