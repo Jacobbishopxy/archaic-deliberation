@@ -27,10 +27,7 @@ object AShareEODDerivativeIndicator extends TimeSeries {
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
       case Command.Initialize :: _ =>
-        val bo = RegimeSyncHelper
-          .generateBatchOption(readFromCol, true, fetchSize)
-          .getOrElse(throw new Exception("generateBatchOption failed"))
-        syncInitAll(readFrom, saveTo, query, Some(bo))
+        syncInitAll(readFrom, saveTo, query, None)
         createPrimaryKeyAndIndex(
           saveTo,
           (primaryKeyName, primaryColumn),
