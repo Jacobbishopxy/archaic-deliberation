@@ -9,12 +9,10 @@ import regime.market.Common._
 
 object AShareL2Indicator extends TimeSeries {
   lazy val query = RegimeSqlHelper.fromResource("sql/market/timeseries/AShareL2Indicator.sql")
-  lazy val queryFromDate = (date: String) => query + s"""
-  WHERE OPDATE > '$date'
-  """
-  lazy val queryDateRange = (fromDate: String, toDate: String) => query + s"""
-  WHERE OPDATE > '$fromDate' AND OPDATE < '$toDate'
-  """
+  lazy val queryFromDate = (date: String) =>
+    RegimeSqlHelper.generateQueryFromDate(query, "OPDATE", date)
+  lazy val queryDateRange = (fromDate: String, toDate: String) =>
+    RegimeSqlHelper.generateQueryDateRange(query, "OPDATE", (fromDate, toDate))
 
   lazy val readFrom       = connMarketTable("ASHAREL2INDICATORS")
   lazy val saveTo         = connBizTable("ashare_level2_indicator")

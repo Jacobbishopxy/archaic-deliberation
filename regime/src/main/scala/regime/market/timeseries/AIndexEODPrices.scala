@@ -9,12 +9,10 @@ import regime.market.Common._
 
 object AIndexEODPrices extends TimeSeries {
   lazy val query = RegimeSqlHelper.fromResource("sql/market/timeseries/AIndexEODPrices.sql")
-  lazy val queryFromDate = (date: String) => query + s"""
-  WHERE OPDATE > '$date'
-  """
-  lazy val queryDateRange = (fromDate: String, toDate: String) => query + s"""
-  WHERE OPDATE > '$fromDate' AND OPDATE < '$toDate'
-  """
+  lazy val queryFromDate = (date: String) =>
+    RegimeSqlHelper.generateQueryFromDate(query, "OPDATE", date)
+  lazy val queryDateRange = (fromDate: String, toDate: String) =>
+    RegimeSqlHelper.generateQueryDateRange(query, "OPDATE", (fromDate, toDate))
 
   lazy val readFrom       = connMarketTable("AINDEXEODPRICES")
   lazy val saveTo         = connBizTable("aindex_eod_prices")
@@ -25,7 +23,7 @@ object AIndexEODPrices extends TimeSeries {
   lazy val index1         = ("IDX_aindex_eod_prices_1", Seq("update_date"))
   lazy val index2         = ("IDX_aindex_eod_prices_2", Seq("trade_date", "symbol"))
 
-  def process(args: String*)(implicit spark: SparkSession): Unit = {
+  def process(args: String*)(implicit spark: SparkSession): Unit =
     args.toList match {
       case Command.Initialize :: _ =>
         val bo = RegimeSyncHelper
@@ -80,5 +78,4 @@ object AIndexEODPrices extends TimeSeries {
         log.error(c)
         throw new Exception("Invalid command")
     }
-  }
 }

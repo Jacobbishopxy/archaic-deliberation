@@ -8,15 +8,12 @@ import regime.product.Common._
 
 object IProductValuation extends Product {
   lazy val query = RegimeSqlHelper.fromResource("sql/product/IProductValuation.sql")
-  lazy val queryFromDate = (date: String) => query + s"""
-  WHERE tradeDate > '$date'
-  """
-  lazy val queryDateRange = (fromDate: String, toDate: String) => query + s"""
-  WHERE tradeDate > '$fromDate' AND tradeDate < '$toDate'
-  """
-  lazy val queryAtDate = (date: String) => query + s"""
-  WHERE tradeDate = '$date'
-  """
+  lazy val queryFromDate = (date: String) =>
+    RegimeSqlHelper.generateQueryFromDate(query, "tradeDate", date)
+  lazy val queryDateRange = (fromDate: String, toDate: String) =>
+    RegimeSqlHelper.generateQueryDateRange(query, "tradeDate", (fromDate, toDate))
+  lazy val queryAtDate = (date: String) =>
+    RegimeSqlHelper.generateQueryAtDate(query, "tradeDate", date)
 
   lazy val readFrom          = connProductTable("ev_rpt_thirdvaluation")
   lazy val saveTo            = connBizTable("iproduct_valuation")

@@ -8,11 +8,20 @@ import org.apache.spark.sql.types.StructType
 import regime.{Conn, ConnTable, ConnTableColumn, DriverType, Global}
 
 object RegimeSqlHelper {
+
+  // ===============================================================================================
+  // SQL string read
+  // ===============================================================================================
+
   def fromFile(filepath: String): String =
     Source.fromFile(filepath).mkString
 
   def fromResource(filename: String): String =
     Source.fromResource(filename).mkString
+
+  // ===============================================================================================
+  // General SQL statement
+  // ===============================================================================================
 
   /** Unsupported driver announcement
     *
@@ -28,6 +37,7 @@ object RegimeSqlHelper {
     *
     * Currently, only supports MySQL & PostgreSQL
     *
+    * @param conn
     * @param tableName
     * @param primaryKeyName
     * @param columns
@@ -58,6 +68,7 @@ object RegimeSqlHelper {
     *
     * Currently, only supports MySQL & PostgreSQL
     *
+    * @param conn
     * @param tableName
     * @param primaryKeyName
     * @return
@@ -85,6 +96,7 @@ object RegimeSqlHelper {
     *
     * Currently, only supports MySQL & PostgreSQL
     *
+    * @param conn
     * @param table
     * @param tableSchema
     * @param conditions
@@ -194,6 +206,7 @@ object RegimeSqlHelper {
 
   /** Generate a createIndex SQL statement
     *
+    * @param conn
     * @param table
     * @param name
     * @param columns
@@ -222,6 +235,7 @@ object RegimeSqlHelper {
 
   /** Generate a dropIndex SQL statement
     *
+    * @param conn
     * @param table
     * @param name
     * @return
@@ -246,6 +260,7 @@ object RegimeSqlHelper {
 
   /** Generate a createForeignKey SQL statement
     *
+    * @param conn
     * @param fromTable
     * @param fromTableColumn
     * @param foreignKeyName
@@ -299,6 +314,7 @@ object RegimeSqlHelper {
 
   /** Generate a dropForeignKey SQL statement
     *
+    * @param conn
     * @param table
     * @param foreignKeyName
     * @return
@@ -325,6 +341,13 @@ object RegimeSqlHelper {
   private def orderDir(isAsc: Boolean): String =
     if (isAsc) "ASC" else "DESC"
 
+  /** Generate a pagination statement
+    *
+    * @param conn
+    * @param sql
+    * @param pagination
+    * @return
+    */
   def generatePaginationStatement(
       conn: Conn,
       sql: String,
@@ -346,15 +369,73 @@ object RegimeSqlHelper {
     }
   )
 
+  /** Count from table statement
+    *
+    * @param column
+    * @param table
+    * @return
+    */
   def generateCountFromStatement(column: String, table: String): String =
     s"""
-    SELECT COUNT(${column}) FROM ${table}
+    SELECT COUNT(${column}) AS count FROM ${table}
     """
 
-  def generateGetMaxDate(tableName: String, columnName: String) = s"""
+  /** Get max value statement
+    *
+    * @param tableName
+    * @param columnName
+    * @return
+    */
+  def generateGetMaxValue(tableName: String, columnName: String) = s"""
     SELECT MAX($columnName) AS max_$columnName FROM $tableName
     """
 
+  /** Add queryFromDate where clause to a SQL statement
+    *
+    * @param query
+    * @param column
+    * @param date
+    * @return
+    */
+  def generateQueryFromDate(query: String, column: String, date: String) = s"""
+    $query
+    WHERE $column > '$date'
+    """
+
+  /** Add queryBetweenDate where clause to a SQL statement
+    *
+    * @param query
+    * @param column
+    * @param dateRange
+    * @return
+    */
+  def generateQueryDateRange(query: String, column: String, dateRange: (String, String)) = s"""
+    $query
+    WHERE $column BETWEEN '${dateRange._1}' AND '${dateRange._2}'
+    """
+
+  /** Add queryAtDate where clause to a SQL statement
+    *
+    * @param query
+    * @param column
+    * @param date
+    * @return
+    */
+  def generateQueryAtDate(query: String, column: String, date: String) = s"""
+    $query
+    WHERE $column = '$date'
+    """
+
+  // ===============================================================================================
+  // Spark SQL
+  // ===============================================================================================
+
+  /** first_value()
+    *
+    * @param tableName
+    * @param columnName
+    * @return
+    */
   def generateGetFirstValue(tableName: String, columnName: String) = s"""
     SELECT first_value(max_$columnName) FROM $tableName
     """

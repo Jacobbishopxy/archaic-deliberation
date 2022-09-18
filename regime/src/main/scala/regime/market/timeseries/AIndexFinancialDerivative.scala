@@ -10,12 +10,10 @@ import regime.market.Common._
 object AIndexFinancialDerivative extends TimeSeries {
   lazy val query =
     RegimeSqlHelper.fromResource("sql/market/timeseries/AIndexFinancialDerivative.sql")
-  lazy val queryFromDate = (date: String) => query + s"""
-  WHERE OPDATE > '$date'
-  """
-  lazy val queryDateRange = (fromDate: String, toDate: String) => query + s"""
-  WHERE OPDATE > '$fromDate' AND OPDATE < '$toDate'
-  """
+  lazy val queryFromDate = (date: String) =>
+    RegimeSqlHelper.generateQueryFromDate(query, "OPDATE", date)
+  lazy val queryDateRange = (fromDate: String, toDate: String) =>
+    RegimeSqlHelper.generateQueryDateRange(query, "OPDATE", (fromDate, toDate))
 
   lazy val readFrom       = connMarketTable("AINDEXFINANCIALDERIVATIVE")
   lazy val saveTo         = connBizTable("aindex_financial_derivative")

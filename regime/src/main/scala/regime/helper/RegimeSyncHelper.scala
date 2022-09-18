@@ -1,6 +1,6 @@
 package regime.helper
 
-import regime.Conn
+import scala.util.Try
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.{TimestampType}
 import org.apache.spark.sql.SaveMode
@@ -9,7 +9,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.log4j.LogManager
 import org.apache.log4j.Level
 
-import regime.{ConnTable, ConnTableColumn, DriverType}
+import regime.{Conn, ConnTable, ConnTableColumn, DriverType}
 
 /** Get the latest update time from the target table, and query the rest of data from the resource
   * table.
@@ -40,10 +40,10 @@ object RegimeSyncHelper {
 
     // get latest date from both tables
     val sourceDf = sourceHelper.readTable(
-      RegimeSqlHelper.generateGetMaxDate(sourceConn.table, sourceConn.column)
+      RegimeSqlHelper.generateGetMaxValue(sourceConn.table, sourceConn.column)
     )
     val rawTargetDf = targetHelper.readTable(
-      RegimeSqlHelper.generateGetMaxDate(targetConn.table, targetConn.column)
+      RegimeSqlHelper.generateGetMaxValue(targetConn.table, targetConn.column)
     )
     val targetDf = timeCvtFn.fold(rawTargetDf)(_(rawTargetDf))
 
@@ -95,8 +95,16 @@ object RegimeSyncHelper {
     val helper = RegimeJdbcHelper(ctc.conn)
     val sql    = RegimeSqlHelper.generateCountFromStatement(ctc.column, ctc.table)
 
-    val rowsOfTable  = helper.readTable(sql).first().get(0).asInstanceOf[Long]
-    val callingTimes = math.floor(rowsOfTable / fetchSize).toInt
+    val tableHead = helper.readTable(sql).first()
+    // In case of different type of value
+    val callingTimes = Try {
+      math.floor(tableHead.getLong(0) / fetchSize).toInt
+    } orElse {
+      Try(math.floor(tableHead.getInt(0) / fetchSize).toInt)
+    } getOrElse {
+      throw new ClassCastException("Invalid counting type")
+    }
+
     log.info(s"CallingTimes: $callingTimes")
 
     BatchOption.create(ctc.column, isAsc, fetchSize, callingTimes)

@@ -9,14 +9,10 @@ import regime.market.Common.{connMarketTable, connBizTable}
 
 object AShareBalanceSheet extends Finance {
   lazy val query = RegimeSqlHelper.fromResource("sql/market/finance/AShareBalanceSheet.sql")
-
-  lazy val queryFromDate = (date: String) => query + s"""
-  WHERE OPDATE > '$date'
-  """
-
-  lazy val queryDateRange = (fromDate: String, toDate: String) => query + s"""
-  WHERE OPDATE > '$fromDate' AND OPDATE < '$toDate'
-  """
+  lazy val queryFromDate = (date: String) =>
+    RegimeSqlHelper.generateQueryFromDate(query, "OPDATE", date)
+  lazy val queryDateRange = (fromDate: String, toDate: String) =>
+    RegimeSqlHelper.generateQueryDateRange(query, "OPDATE", (fromDate, toDate))
 
   lazy val readFrom       = connMarketTable("ASHAREBALANCESHEET")
   lazy val saveTo         = connBizTable("ashare_balance_sheet")
