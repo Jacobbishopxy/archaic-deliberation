@@ -61,6 +61,7 @@ object RegimeSyncHelper {
       .first()
 
     if (resRow.isNullAt(0)) {
+      log.info("No update date has been found")
       None
     } else {
       val lastDate = resRow.get(0).toString()
@@ -343,6 +344,54 @@ object RegimeSyncHelper {
       onConflictColumns,
       querySqlCst,
       batchOption,
+      timeCvtFn,
+      df => df
+    )
+
+  /** If last update date has changed, then replaceAll data
+    *
+    * @param sourceConn
+    * @param targetConn
+    * @param querySql
+    * @param timeCvtFn
+    * @param conversionFn
+    * @param spark
+    */
+  def replaceAllIfLastUpdateTimeChanged(
+      sourceConn: ConnTableColumn,
+      targetConn: ConnTableColumn,
+      querySql: String,
+      timeCvtFn: Option[DataFrame => DataFrame],
+      conversionFn: DataFrame => DataFrame
+  )(implicit spark: SparkSession): Unit =
+    lastUpdateTimeCurrying(sourceConn, targetConn, timeCvtFn) {
+      (
+          sourceHelper,
+          targetHelper,
+          lastUpdateTime
+      ) =>
+        log.info("Starting ReplaceAllIfLastUpdateTimeChanged...")
+
+        // Read all
+        val df = conversionFn(sourceHelper.readTable(querySql))
+        // Truncate table
+        targetHelper.truncateTable(targetConn.table, false)
+        // Save all
+        targetHelper.saveTable(df, targetConn.table, SaveMode.Append)
+
+        log.info("ReplaceAllIfLastUpdateTimeChanged complete!")
+    }
+
+  def replaceAllIfLastUpdateTimeChanged(
+      sourceConn: ConnTableColumn,
+      targetConn: ConnTableColumn,
+      querySql: String,
+      timeCvtFn: Option[DataFrame => DataFrame]
+  )(implicit spark: SparkSession): Unit =
+    replaceAllIfLastUpdateTimeChanged(
+      sourceConn,
+      targetConn,
+      querySql,
       timeCvtFn,
       df => df
     )

@@ -174,6 +174,42 @@ trait RegimeSpark {
       batchOption: Option[BatchOption]
   )(implicit spark: SparkSession): Unit = syncReplaceAll(from, to, sql, batchOption, df => df)
 
+  /** Sync data from one table to another if source table has updated according to
+    * diff(lastUpdatedTime)
+    *
+    * @param from
+    * @param to
+    * @param sql
+    * @param timeCvtFn
+    * @param conversionFn
+    * @param spark
+    */
+  def syncReplaceAllIfUpdated(
+      from: ConnTableColumn,
+      to: ConnTableColumn,
+      sql: String,
+      timeCvtFn: Option[DataFrame => DataFrame],
+      conversionFn: DataFrame => DataFrame
+  )(implicit spark: SparkSession): Unit = {
+    log.info("Starting a SyncReplaceAllIfUpdated task...")
+    RegimeSyncHelper.replaceAllIfLastUpdateTimeChanged(
+      from,
+      to,
+      sql,
+      timeCvtFn,
+      conversionFn
+    )
+    log.info("SyncReplaceAllIfUpdated task complete!")
+  }
+
+  def syncReplaceAllIfUpdated(
+      from: ConnTableColumn,
+      to: ConnTableColumn,
+      sql: String,
+      timeCvtFn: Option[DataFrame => DataFrame]
+  )(implicit spark: SparkSession): Unit =
+    syncReplaceAllIfUpdated(from, to, sql, timeCvtFn, df => df)
+
   /** Sync data from one table to another by upsert.
     *
     * @param from

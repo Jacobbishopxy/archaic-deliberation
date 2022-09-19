@@ -12,6 +12,9 @@ object Common {
   val connMarket = Conn(marketConfig)
   val connBiz    = Conn(bizConfig)
 
+  val timeColumnMarket = "OPDATE"
+  val timeColumnBiz    = "update_date"
+
   def connMarketTable(table: String): ConnTable =
     ConnTable(connMarket, table)
   def connBizTable(table: String): ConnTable =

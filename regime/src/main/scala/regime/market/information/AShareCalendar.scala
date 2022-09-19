@@ -5,14 +5,16 @@ import org.apache.spark.sql.SaveMode
 
 import regime.helper._
 import regime.market.Information
-import regime.market.Common.{connMarketTable, connBizTable}
+import regime.market.Common._
 
 object AShareCalendar extends Information {
-  lazy val query      = RegimeSqlHelper.fromResource("sql/market/information/AShareCalendar.sql")
-  lazy val readFrom   = connMarketTable("ASHARECALENDAR")
-  lazy val saveTo     = connBizTable("ashare_calendar")
-  lazy val primaryKey = ("PK_ashare_calendar", Seq("object_id"))
-  lazy val index      = ("IDX_ashare_calendar", Seq("trade_days"))
+  lazy val query       = RegimeSqlHelper.fromResource("sql/market/information/AShareCalendar.sql")
+  lazy val readFrom    = connMarketTable("ASHARECALENDAR")
+  lazy val saveTo      = connBizTable("ashare_calendar")
+  lazy val readFromCol = connMarketTableColumn("ASHARECALENDAR", timeColumnMarket)
+  lazy val saveToCol   = connBizTableColumn("ashare_calendar", timeColumnBiz)
+  lazy val primaryKey  = ("PK_ashare_calendar", Seq("object_id"))
+  lazy val index       = ("IDX_ashare_calendar", Seq("trade_days"))
 
   def process(args: String*)(implicit spark: SparkSession): Unit =
     args.toList match {
@@ -30,7 +32,7 @@ object AShareCalendar extends Information {
           Seq(index)
         )
       case Command.SyncAll :: _ =>
-        syncReplaceAll(readFrom, saveTo, query, None)
+        syncReplaceAllIfUpdated(readFromCol, saveToCol, query, None)
       case _ =>
         throw new Exception("Invalid command")
     }

@@ -5,12 +5,14 @@ import org.apache.spark.sql.SaveMode
 
 import regime.helper._
 import regime.market.Information
-import regime.market.Common.{connMarketTable, connBizTable}
+import regime.market.Common._
 
 object AIndexInformationWind extends Information {
   lazy val query = RegimeSqlHelper.fromResource("sql/market/information/AIndexInformationWind.sql")
   lazy val readFrom       = connMarketTable("AINDEXMEMBERSWIND")
   lazy val saveTo         = connBizTable("aindex_information_wind")
+  lazy val readFromCol    = connMarketTableColumn("AINDEXMEMBERSWIND", timeColumnMarket)
+  lazy val saveToCol      = connBizTableColumn("aindex_information_wind", timeColumnBiz)
   lazy val primaryKeyName = "PK_aindex_information_wind"
   lazy val primaryColumn  = Seq("object_id")
 
@@ -22,7 +24,7 @@ object AIndexInformationWind extends Information {
       case Command.ExecuteOnce :: _ =>
         createPrimaryKey(saveTo, primaryKeyName, primaryColumn)
       case Command.SyncAll :: _ =>
-        syncReplaceAll(readFrom, saveTo, query, None)
+        syncReplaceAllIfUpdated(readFromCol, saveToCol, query, None)
       case _ =>
         throw new Exception("Invalid Command")
     }
