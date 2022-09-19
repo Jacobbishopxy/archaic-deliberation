@@ -28,7 +28,7 @@ object IProductValuation extends Product {
   lazy val conversionFn = RegimeFn
     .formatLongToDate(timeColumnBiz, dateFormat)
     .andThen(RegimeFn.concatMultipleColumns(newPrimaryColName, newPKCols, concatenateString))
-  lazy val timeReverseFn = RegimeFn.formatDateToLong("max_trade_date", datetimeFormat)
+  lazy val timeReverseFn = RegimeFn.formatDateToLong(timeColumnBiz, datetimeFormat)
 
   def process(args: String*)(implicit spark: SparkSession): Unit = args.toList match {
     case Command.Initialize :: _ =>

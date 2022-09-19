@@ -387,7 +387,7 @@ object RegimeSqlHelper {
     * @return
     */
   def generateGetMaxValue(tableName: String, columnName: String) = s"""
-    SELECT MAX($columnName) AS max_$columnName FROM $tableName
+    SELECT MAX($columnName) AS $columnName FROM $tableName
     """
 
   /** Add queryFromDate where clause to a SQL statement
@@ -437,7 +437,7 @@ object RegimeSqlHelper {
     * @return
     */
   def generateGetFirstValue(tableName: String, columnName: String) = s"""
-    SELECT first_value(max_$columnName) FROM $tableName
+    SELECT first_value($columnName) FROM $tableName
     """
 
 }

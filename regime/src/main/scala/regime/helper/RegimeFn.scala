@@ -18,6 +18,22 @@ object RegimeFn {
         to_date(col(columnName), dateFormat)
       )
 
+  def formatDateToString(
+      columnName: String,
+      dateFormat: String
+  ): DataFrame => DataFrame =
+    df =>
+      df.withColumn(
+        columnName,
+        date_format(col(columnName), dateFormat)
+      )
+
+  def formatDatetimeToString(
+      columnName: String,
+      datetimeFormat: String
+  ): DataFrame => DataFrame =
+    formatDateToString(columnName, datetimeFormat)
+
   def formatLongToDatetime(
       columnName: String,
       timestampFormat: String

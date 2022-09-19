@@ -29,5 +29,6 @@ object Common {
   lazy val fetchSize         = 10000000
   lazy val concatenateString = "-"
   lazy val dateFormat        = "yyyyMMdd"
+  lazy val datetimeFormat    = "yyyy-MM-dd HH:mm:ss"
 
 }

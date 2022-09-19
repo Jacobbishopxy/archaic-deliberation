@@ -44,7 +44,7 @@ object IProductPosition extends Product {
     .formatLongToDatetime(timeColumnBiz, datetimeFormat)
     .andThen(RegimeFn.whenNotInThen("suspended_flag", Seq("F", "N", "T", "Y", "0"), "0"))
     .andThen(RegimeFn.concatMultipleColumns(newPrimaryColName, newPKCols, concatenateString))
-  lazy val timeReverseFn = RegimeFn.formatDatetimeToLong("max_trade_date", datetimeFormat)
+  lazy val timeReverseFn = RegimeFn.formatDatetimeToLong(timeColumnBiz, datetimeFormat)
 
   def process(args: String*)(implicit spark: SparkSession): Unit = args.toList match {
     case Command.Initialize :: _ =>
