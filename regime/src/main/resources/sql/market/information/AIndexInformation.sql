@@ -1,11 +1,11 @@
 
 SELECT
-  ad.OBJECT_ID AS object_id,
-  am.S_INFO_WINDCODE,
-  am.S_CON_WINDCODE,
-  am.S_CON_INDATE,
-  am.S_CON_OUTDATE,
-  am.CUR_SIGN,
+  am.OBJECT_ID AS object_id,
+  am.S_INFO_WINDCODE AS index_symbol,
+  am.S_CON_WINDCODE AS symbol,
+  am.S_CON_INDATE AS in_date,
+  am.S_CON_OUTDATE AS out_date,
+  am.CUR_SIGN AS cur_sign,
   am.OPDATE AS update_date,
   ad.S_INFO_NAME AS index_abbr,
   ad.S_INFO_COMPNAME AS index_name,

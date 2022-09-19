@@ -30,10 +30,8 @@ case class Conn(
   def url: String = {
     driverType match {
       case DriverType.MsSql =>
-        s"jdbc:$db://$host:$port;databaseName=$database;encrypt=true;trustServerCertificate=true;"
+        s"jdbc:$db://$host:$port;databaseName=$database;$databaseOptions"
       case _ =>
-        // s"jdbc:$db://$host:$port/$database?useUnicode=true&characterEncoding=UTF-8"
-        // s"jdbc:$db://$host:$port/$database?useUnicode=true&characterEncoding=GBK"
         s"jdbc:$db://$host:$port/$database?$databaseOptions"
     }
   }

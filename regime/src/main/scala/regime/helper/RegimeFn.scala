@@ -8,6 +8,16 @@ import regime.Global
 
 object RegimeFn {
 
+  def formatStringToDate(
+      columnName: String,
+      dateFormat: String
+  ): DataFrame => DataFrame =
+    df =>
+      df.withColumn(
+        columnName,
+        to_date(col(columnName), dateFormat)
+      )
+
   def formatLongToDatetime(
       columnName: String,
       timestampFormat: String
@@ -84,6 +94,11 @@ object RegimeFn {
       replacedBy: Double
   ): DataFrame => DataFrame =
     df => df.na.fill(replacedBy, columns)
+
+  def dropNullRow(
+      columns: Seq[String]
+  ): DataFrame => DataFrame =
+    df => df.na.drop(columns)
 
   def whenNotInThen[A](
       columnName: String,

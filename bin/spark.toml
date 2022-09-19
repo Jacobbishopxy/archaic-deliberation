@@ -49,7 +49,7 @@ command = "scp"
 args = [
   "-rp",
   "${PROJECT_CONF_DIR}",
-  "${SPARK_APP_DIR}/${SPARK_CONF_DIR}",
+  "${SPARK_APP_DIR}",
 ]
 
 # cargo make --makefile spark.toml send-deps

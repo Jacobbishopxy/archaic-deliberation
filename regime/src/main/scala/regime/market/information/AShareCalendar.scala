@@ -14,27 +14,29 @@ object AShareCalendar extends Information {
   lazy val readFromCol = connMarketTableColumn("ASHARECALENDAR", timeColumnMarket)
   lazy val saveToCol   = connBizTableColumn("ashare_calendar", timeColumnBiz)
   lazy val primaryKey  = ("PK_ashare_calendar", Seq("object_id"))
-  lazy val index       = ("IDX_ashare_calendar", Seq("trade_days"))
+  lazy val index1      = ("IDX_ashare_calendar_1", Seq(timeTradeDate))
+  lazy val index2      = ("IDX_ashare_calendar_2", Seq(timeColumnBiz))
+
+  lazy val conversionFn = RegimeFn.formatStringToDate(timeTradeDate, dateFormat)
 
   def process(args: String*)(implicit spark: SparkSession): Unit =
     args.toList match {
       case Command.Initialize :: _ =>
-        syncInitAll(readFrom, saveTo, query, None)
+        syncInitAll(readFrom, saveTo, query, None, conversionFn)
         createPrimaryKeyAndIndex(
           saveTo,
           primaryKey,
-          Seq(index)
+          Seq(index1, index2)
         )
       case Command.ExecuteOnce :: _ =>
         createPrimaryKeyAndIndex(
           saveTo,
           primaryKey,
-          Seq(index)
+          Seq(index1, index2)
         )
       case Command.SyncAll :: _ =>
-        syncReplaceAllIfUpdated(readFromCol, saveToCol, query, None)
+        syncReplaceAllIfUpdated(readFromCol, saveToCol, query, None, conversionFn)
       case _ =>
         throw new Exception("Invalid command")
     }
-
 }

@@ -1,6 +1,6 @@
 
 SELECT
-  ad.OBJECT_ID AS object_id,
+  am.OBJECT_ID AS object_id,
   am.S_INFO_WINDCODE AS index_symbol,
   am.S_CON_WINDCODE AS symbol,
   am.S_CON_INDATE AS in_date,

@@ -14,6 +14,7 @@ object Common {
 
   val timeColumnMarket = "OPDATE"
   val timeColumnBiz    = "update_date"
+  val timeTradeDate    = "trade_date"
 
   def connMarketTable(table: String): ConnTable =
     ConnTable(connMarket, table)
@@ -25,6 +26,8 @@ object Common {
   def connBizTableColumn(table: String, column: String): ConnTableColumn =
     ConnTableColumn(connBiz, table, column)
 
-  lazy val fetchSize = 10000000
+  lazy val fetchSize         = 10000000
+  lazy val concatenateString = "-"
+  lazy val dateFormat        = "yyyyMMdd"
 
 }

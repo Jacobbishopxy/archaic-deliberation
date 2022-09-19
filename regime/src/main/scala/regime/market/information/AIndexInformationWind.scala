@@ -9,22 +9,36 @@ import regime.market.Common._
 
 object AIndexInformationWind extends Information {
   lazy val query = RegimeSqlHelper.fromResource("sql/market/information/AIndexInformationWind.sql")
-  lazy val readFrom       = connMarketTable("AINDEXMEMBERSWIND")
-  lazy val saveTo         = connBizTable("aindex_information_wind")
-  lazy val readFromCol    = connMarketTableColumn("AINDEXMEMBERSWIND", timeColumnMarket)
-  lazy val saveToCol      = connBizTableColumn("aindex_information_wind", timeColumnBiz)
-  lazy val primaryKeyName = "PK_aindex_information_wind"
-  lazy val primaryColumn  = Seq("object_id")
+  lazy val readFrom    = connMarketTable("AINDEXMEMBERSWIND")
+  lazy val saveTo      = connBizTable("aindex_information_wind")
+  lazy val readFromCol = connMarketTableColumn("AINDEXMEMBERSWIND", timeColumnMarket)
+  lazy val saveToCol   = connBizTableColumn("aindex_information_wind", timeColumnBiz)
+  lazy val primaryKey  = ("PK_aindex_information_wind", Seq("object_id"))
+  lazy val index1      = ("IDX_aindex_information_wind_1", Seq(timeColumnBiz))
+  lazy val index2      = ("IDX_aindex_information_wind_2", Seq("index_symbol", "symbol"))
+
+  lazy val conversionFn = RegimeFn
+    .formatStringToDate("in_date", dateFormat)
+    .andThen(RegimeFn.formatStringToDate("out_date", dateFormat))
+    .andThen(RegimeFn.formatStringToDate("expire_date", dateFormat))
 
   def process(args: String*)(implicit spark: SparkSession): Unit =
     args.toList match {
       case Command.Initialize :: _ =>
-        syncInitAll(readFrom, saveTo, query, None)
-        createPrimaryKey(saveTo, primaryKeyName, primaryColumn)
+        syncInitAll(readFrom, saveTo, query, None, conversionFn)
+        createPrimaryKeyAndIndex(
+          saveTo,
+          primaryKey,
+          Seq(index1, index2)
+        )
       case Command.ExecuteOnce :: _ =>
-        createPrimaryKey(saveTo, primaryKeyName, primaryColumn)
+        createPrimaryKeyAndIndex(
+          saveTo,
+          primaryKey,
+          Seq(index1, index2)
+        )
       case Command.SyncAll :: _ =>
-        syncReplaceAllIfUpdated(readFromCol, saveToCol, query, None)
+        syncReplaceAllIfUpdated(readFromCol, saveToCol, query, None, conversionFn)
       case _ =>
         throw new Exception("Invalid Command")
     }
