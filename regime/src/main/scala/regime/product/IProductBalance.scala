@@ -14,18 +14,18 @@ object IProductBalance extends Product {
 
   lazy val readFrom          = connProductTable("bside_ev_balancehis")
   lazy val saveTo            = connBizTable("iproduct_balance")
-  lazy val readFromCol       = connProductTableColumn("bside_ev_balancehis", "tradeDate")
-  lazy val saveToCol         = connBizTableColumn("iproduct_balance", "trade_date")
+  lazy val readFromCol       = connProductTableColumn("bside_ev_balancehis", timeColumnProduct)
+  lazy val saveToCol         = connBizTableColumn("iproduct_balance", timeColumnBiz)
   lazy val primaryKeyName    = "PK_iproduct_balance"
   lazy val newPrimaryColName = "object_id"
-  lazy val newPKCols         = Seq("trade_date", "product_num", "subject_id")
+  lazy val newPKCols         = Seq(timeColumnBiz, "product_num", "subject_id")
   lazy val primaryColumn     = Seq("object_id")
   lazy val index1            = ("IDX_iproduct_balance_1", Seq("product_num"))
   lazy val index2            = ("IDX_iproduct_balance_2", Seq("subject_id"))
-  lazy val index3            = ("IDX_iproduct_balance_3", Seq("trade_date"))
+  lazy val index3            = ("IDX_iproduct_balance_3", Seq(timeColumnBiz))
 
   lazy val conversionFn = RegimeFn
-    .formatLongToDatetime("trade_date", datetimeFormat)
+    .formatLongToDatetime(timeColumnBiz, datetimeFormat)
     .andThen(RegimeFn.concatMultipleColumns(newPrimaryColName, newPKCols, concatenateString))
   lazy val timeReverseFn = RegimeFn.formatDatetimeToLong("max_trade_date", datetimeFormat)
 

@@ -28,15 +28,14 @@ object RegimeFn {
         to_timestamp(col(columnName).cast("string"), timestampFormat)
       )
 
-  def formatLongToDatetime(
-      newColumnName: String,
-      originalColumnName: String,
-      timestampFormat: String
+  def formatLongToDate(
+      columnName: String,
+      dateFormat: String
   ): DataFrame => DataFrame =
     df =>
       df.withColumn(
-        newColumnName,
-        to_timestamp(col(originalColumnName).cast("string"), timestampFormat)
+        columnName,
+        to_date(col(columnName).cast("string").substr(0, 8), dateFormat)
       )
 
   def formatDatetimeToLong(
@@ -49,15 +48,14 @@ object RegimeFn {
         date_format(col(columnName), timestampFormat).cast("long")
       )
 
-  def formatDatetimeToLong(
-      newColumnName: String,
+  def formatDateToLong(
       columnName: String,
       timestampFormat: String
   ): DataFrame => DataFrame =
     df =>
       df.withColumn(
-        newColumnName,
-        date_format(col(columnName), timestampFormat).cast("long")
+        columnName,
+        date_format(col(columnName) + "000000", timestampFormat).cast("long")
       )
 
   def concatMultipleColumns(

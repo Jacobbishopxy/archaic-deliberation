@@ -82,6 +82,7 @@ kubectl run \
   ${SPARK_APP} ${@}
 '''
 
+# [Dev use] Minimize executor
 # cargo make --makefile spark.toml exec-task Information AIndexInformation SyncAll
 [tasks.exec-task-0]
 script = '''
@@ -106,3 +107,13 @@ kubectl run \
   --class regime.Main \
   ${SPARK_APP} ${@}
 '''
+
+# [tasks.test-flow]
+# env = { SOME_ENV_VAR = "value" }
+# run_task = "actual-task"
+
+# [tasks.actual-task]
+# condition = { env_set = [ "SOME_ENV_VAR" ] }
+# script = '''
+# echo var: ${SOME_ENV_VAR}
+# '''

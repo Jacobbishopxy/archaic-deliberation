@@ -2,14 +2,15 @@
 
 - To develop locally, please make sure `resources/conn.conf` exists (see `resources/conn.template.conf` for more detail).
 
-## Market
-
 Commands:
 
 - Initialize
+- Truncate
 - SyncAll
+- ScanAll
 - DailyUpsert
 - DailyDelete
+- DailyReplace
 - SyncFromLastUpdate
 - OverrideFromLastUpdate
 - TimeFromTillNowUpsert
@@ -17,6 +18,8 @@ Commands:
 - TimeRangeUpsert
 - TimeRangeDelete
 - ExecuteOnce
+
+## Market
 
 ### Information
 
@@ -67,4 +70,4 @@ WIP
 
 ## Portfolio
 
-WIP
+- [ ] RPortfolioIndicator

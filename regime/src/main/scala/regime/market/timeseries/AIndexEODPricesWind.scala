@@ -10,23 +10,25 @@ import regime.market.Common._
 object AIndexEODPricesWind extends TimeSeries {
   lazy val query = RegimeSqlHelper.fromResource("sql/market/timeseries/AIndexEODPricesWind.sql")
   lazy val queryFromDate = (date: String) =>
-    RegimeSqlHelper.generateQueryFromDate(query, "OPDATE", date)
+    RegimeSqlHelper.generateQueryFromDate(query, timeColumnMarket, date)
   lazy val queryDateRange = (fromDate: String, toDate: String) =>
-    RegimeSqlHelper.generateQueryDateRange(query, "OPDATE", (fromDate, toDate))
+    RegimeSqlHelper.generateQueryDateRange(query, timeColumnMarket, (fromDate, toDate))
 
   lazy val readFrom       = connMarketTable("AINDEXWINDINDUSTRIESEOD")
   lazy val saveTo         = connBizTable("aindex_eod_prices_wind")
-  lazy val readFromCol    = connMarketTableColumn("AINDEXWINDINDUSTRIESEOD", "OPDATE")
-  lazy val saveToCol      = connBizTableColumn("aindex_eod_prices_wind", "update_date")
+  lazy val readFromCol    = connMarketTableColumn("AINDEXWINDINDUSTRIESEOD", timeColumnMarket)
+  lazy val saveToCol      = connBizTableColumn("aindex_eod_prices_wind", timeColumnBiz)
   lazy val primaryKeyName = "PK_aindex_eod_prices_wind"
   lazy val primaryColumn  = Seq("object_id")
-  lazy val index1         = ("IDX_aindex_eod_prices_wind_1", Seq("update_date"))
-  lazy val index2         = ("IDX_aindex_eod_prices_wind_2", Seq("trade_date", "symbol"))
+  lazy val index1         = ("IDX_aindex_eod_prices_wind_1", Seq(timeColumnBiz))
+  lazy val index2         = ("IDX_aindex_eod_prices_wind_2", Seq(timeTradeDate, "symbol"))
+
+  lazy val conversionFn = RegimeFn.formatStringToDate(timeTradeDate, dateFormat)
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
       case Command.Initialize :: _ =>
-        syncInitAll(readFrom, saveTo, query, None)
+        syncInitAll(readFrom, saveTo, query, None, conversionFn)
         createPrimaryKeyAndIndex(
           saveTo,
           (primaryKeyName, primaryColumn),
@@ -44,7 +46,8 @@ object AIndexEODPricesWind extends TimeSeries {
           saveToCol,
           queryFromDate,
           None,
-          None
+          None,
+          conversionFn
         )
       case Command.OverrideFromLastUpdate :: _ =>
         syncUpsertFromLastUpdate(
@@ -53,7 +56,8 @@ object AIndexEODPricesWind extends TimeSeries {
           primaryColumn,
           queryFromDate,
           None,
-          None
+          None,
+          conversionFn
         )
       case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
         syncUpsert(
@@ -61,7 +65,8 @@ object AIndexEODPricesWind extends TimeSeries {
           saveTo,
           queryFromDate(timeFrom),
           primaryColumn,
-          None
+          None,
+          conversionFn
         )
       case Command.TimeRangeUpsert :: timeFrom :: timeTo :: _ =>
         syncUpsert(
@@ -69,7 +74,8 @@ object AIndexEODPricesWind extends TimeSeries {
           saveTo,
           queryDateRange(timeFrom, timeTo),
           primaryColumn,
-          None
+          None,
+          conversionFn
         )
       case c @ _ =>
         log.error(c)

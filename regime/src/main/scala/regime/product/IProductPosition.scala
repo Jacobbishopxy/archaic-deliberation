@@ -9,17 +9,17 @@ import regime.product.Common._
 object IProductPosition extends Product {
   lazy val query = RegimeSqlHelper.fromResource("sql/product/IProductPosition.sql")
   lazy val queryFromDate = (date: String) =>
-    RegimeSqlHelper.generateQueryFromDate(query, "tradeDate", date)
+    RegimeSqlHelper.generateQueryFromDate(query, timeColumnProduct, date)
   lazy val queryDateRange = (fromDate: String, toDate: String) =>
-    RegimeSqlHelper.generateQueryDateRange(query, "tradeDate", (fromDate, toDate))
+    RegimeSqlHelper.generateQueryDateRange(query, timeColumnProduct, (fromDate, toDate))
   lazy val queryAtDate = (date: String) =>
-    RegimeSqlHelper.generateQueryAtDate(query, "tradeDate", date)
+    RegimeSqlHelper.generateQueryAtDate(query, timeColumnProduct, date)
 
-  lazy val readFrom          = connProductTable("bside_ev_rpt_tradesummary")
-  lazy val saveTo            = connBizTable("iproduct_position")
-  lazy val readFromCol       = connProductTableColumn("bside_ev_rpt_tradesummary", "tradeDate")
-  lazy val saveToCol         = connBizTableColumn("iproduct_position", "trade_date")
-  lazy val primaryKeyName    = "PK_iproduct_position"
+  lazy val readFrom       = connProductTable("bside_ev_rpt_tradesummary")
+  lazy val saveTo         = connBizTable("iproduct_position")
+  lazy val readFromCol    = connProductTableColumn("bside_ev_rpt_tradesummary", timeColumnProduct)
+  lazy val saveToCol      = connBizTableColumn("iproduct_position", timeColumnBiz)
+  lazy val primaryKeyName = "PK_iproduct_position"
   lazy val newPrimaryColName = "object_id"
   lazy val newPKCols = Seq(
     "trade_date",
@@ -33,15 +33,15 @@ object IProductPosition extends Product {
   lazy val primaryColumn = Seq("object_id")
   lazy val index1 = (
     "IDX_iproduct_position_1",
-    Seq("trade_date", "product_num", "parent_product_num", "exch_id", "stock_id")
+    Seq(timeColumnBiz, "product_num", "parent_product_num", "exch_id", "stock_id")
   )
   lazy val index2 = (
     "IDX_iproduct_position_2",
-    Seq("trade_date", "exch_id", "stock_id")
+    Seq(timeColumnBiz, "exch_id", "stock_id")
   )
 
   lazy val conversionFn = RegimeFn
-    .formatLongToDatetime("trade_date", datetimeFormat)
+    .formatLongToDatetime(timeColumnBiz, datetimeFormat)
     .andThen(RegimeFn.whenNotInThen("suspended_flag", Seq("F", "N", "T", "Y", "0"), "0"))
     .andThen(RegimeFn.concatMultipleColumns(newPrimaryColName, newPKCols, concatenateString))
   lazy val timeReverseFn = RegimeFn.formatDatetimeToLong("max_trade_date", datetimeFormat)

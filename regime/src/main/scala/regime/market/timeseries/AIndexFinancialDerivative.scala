@@ -11,23 +11,25 @@ object AIndexFinancialDerivative extends TimeSeries {
   lazy val query =
     RegimeSqlHelper.fromResource("sql/market/timeseries/AIndexFinancialDerivative.sql")
   lazy val queryFromDate = (date: String) =>
-    RegimeSqlHelper.generateQueryFromDate(query, "OPDATE", date)
+    RegimeSqlHelper.generateQueryFromDate(query, timeColumnMarket, date)
   lazy val queryDateRange = (fromDate: String, toDate: String) =>
-    RegimeSqlHelper.generateQueryDateRange(query, "OPDATE", (fromDate, toDate))
+    RegimeSqlHelper.generateQueryDateRange(query, timeColumnMarket, (fromDate, toDate))
 
   lazy val readFrom       = connMarketTable("AINDEXFINANCIALDERIVATIVE")
   lazy val saveTo         = connBizTable("aindex_financial_derivative")
-  lazy val readFromCol    = connMarketTableColumn("AINDEXFINANCIALDERIVATIVE", "OPDATE")
-  lazy val saveToCol      = connBizTableColumn("aindex_financial_derivative", "update_date")
+  lazy val readFromCol    = connMarketTableColumn("AINDEXFINANCIALDERIVATIVE", timeColumnMarket)
+  lazy val saveToCol      = connBizTableColumn("aindex_financial_derivative", timeColumnBiz)
   lazy val primaryKeyName = "PK_aindex_financial_derivative"
   lazy val primaryColumn  = Seq("object_id")
-  lazy val index1         = ("IDX_aindex_financial_derivative_1", Seq("update_date"))
+  lazy val index1         = ("IDX_aindex_financial_derivative_1", Seq(timeColumnBiz))
   lazy val index2         = ("IDX_aindex_financial_derivative_2", Seq("report_period", "symbol"))
+
+  lazy val conversionFn = RegimeFn.formatStringToDate("report_period", dateFormat)
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
       case Command.Initialize :: _ =>
-        syncInitAll(readFrom, saveTo, query, None)
+        syncInitAll(readFrom, saveTo, query, None, conversionFn)
         createPrimaryKeyAndIndex(
           saveTo,
           (primaryKeyName, primaryColumn),
@@ -45,7 +47,8 @@ object AIndexFinancialDerivative extends TimeSeries {
           saveToCol,
           queryFromDate,
           None,
-          None
+          None,
+          conversionFn
         )
       case Command.OverrideFromLastUpdate :: _ =>
         syncUpsertFromLastUpdate(
@@ -54,7 +57,8 @@ object AIndexFinancialDerivative extends TimeSeries {
           primaryColumn,
           queryFromDate,
           None,
-          None
+          None,
+          conversionFn
         )
       case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
         syncUpsert(
@@ -62,7 +66,8 @@ object AIndexFinancialDerivative extends TimeSeries {
           saveTo,
           queryFromDate(timeFrom),
           primaryColumn,
-          None
+          None,
+          conversionFn
         )
       case Command.TimeRangeUpsert :: timeFrom :: timeTo :: _ =>
         syncUpsert(
@@ -70,7 +75,8 @@ object AIndexFinancialDerivative extends TimeSeries {
           saveTo,
           queryDateRange(timeFrom, timeTo),
           primaryColumn,
-          None
+          None,
+          conversionFn
         )
       case c @ _ =>
         log.error(c)

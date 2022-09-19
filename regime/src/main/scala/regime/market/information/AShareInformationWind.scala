@@ -18,7 +18,6 @@ object AShareInformationWind extends Information {
   lazy val index2      = ("IDX_ashare_information_wind_2", Seq("symbol"))
 
   lazy val compoundPK = Seq("object_id_ad", "object_id_aic", "object_id_ac")
-
   lazy val conversionFn = RegimeFn
     .dropNullRow(compoundPK)
     .andThen(RegimeFn.concatMultipleColumns("object_id", compoundPK, concatenateString))

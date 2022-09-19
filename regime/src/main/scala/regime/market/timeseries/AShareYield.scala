@@ -18,17 +18,19 @@ object AShareYield extends TimeSeries {
 
   lazy val readFrom       = connMarketTable("ASHAREYIELD")
   lazy val saveTo         = connBizTable("ashare_yield")
-  lazy val readFromCol    = connMarketTableColumn("ASHAREYIELD", "OPDATE")
-  lazy val saveToCol      = connBizTableColumn("ashare_yield", "update_date")
+  lazy val readFromCol    = connMarketTableColumn("ASHAREYIELD", timeColumnMarket)
+  lazy val saveToCol      = connBizTableColumn("ashare_yield", timeColumnBiz)
   lazy val primaryKeyName = "PK_ashare_yield"
   lazy val primaryColumn  = Seq("object_id")
-  lazy val index1         = ("IDX_ashare_yield_1", Seq("update_date"))
-  lazy val index2         = ("IDX_ashare_yield_2", Seq("trade_date", "symbol"))
+  lazy val index1         = ("IDX_ashare_yield_1", Seq(timeColumnBiz))
+  lazy val index2         = ("IDX_ashare_yield_2", Seq(timeTradeDate, "symbol"))
+
+  lazy val conversionFn = RegimeFn.formatStringToDate(timeTradeDate, dateFormat)
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {
       case Command.Initialize :: _ =>
-        syncInitAll(readFrom, saveTo, query, None)
+        syncInitAll(readFrom, saveTo, query, None, conversionFn)
         createPrimaryKeyAndIndex(
           saveTo,
           (primaryKeyName, primaryColumn),
@@ -46,7 +48,8 @@ object AShareYield extends TimeSeries {
           saveToCol,
           queryFromDate,
           None,
-          None
+          None,
+          conversionFn
         )
       case Command.OverrideFromLastUpdate :: _ =>
         syncUpsertFromLastUpdate(
@@ -55,7 +58,8 @@ object AShareYield extends TimeSeries {
           primaryColumn,
           queryFromDate,
           None,
-          None
+          None,
+          conversionFn
         )
       case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
         syncUpsert(
@@ -63,7 +67,8 @@ object AShareYield extends TimeSeries {
           saveTo,
           queryFromDate(timeFrom),
           primaryColumn,
-          None
+          None,
+          conversionFn
         )
       case Command.TimeRangeUpsert :: timeFrom :: timeTo :: _ =>
         syncUpsert(
@@ -71,7 +76,8 @@ object AShareYield extends TimeSeries {
           saveTo,
           queryFromDate(timeFrom),
           primaryColumn,
-          None
+          None,
+          conversionFn
         )
       case c @ _ =>
         log.error(c)

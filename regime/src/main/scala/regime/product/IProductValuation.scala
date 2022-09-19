@@ -9,26 +9,26 @@ import regime.product.Common._
 object IProductValuation extends Product {
   lazy val query = RegimeSqlHelper.fromResource("sql/product/IProductValuation.sql")
   lazy val queryFromDate = (date: String) =>
-    RegimeSqlHelper.generateQueryFromDate(query, "tradeDate", date)
+    RegimeSqlHelper.generateQueryFromDate(query, timeColumnProduct, date)
   lazy val queryDateRange = (fromDate: String, toDate: String) =>
-    RegimeSqlHelper.generateQueryDateRange(query, "tradeDate", (fromDate, toDate))
+    RegimeSqlHelper.generateQueryDateRange(query, timeColumnProduct, (fromDate, toDate))
   lazy val queryAtDate = (date: String) =>
-    RegimeSqlHelper.generateQueryAtDate(query, "tradeDate", date)
+    RegimeSqlHelper.generateQueryAtDate(query, timeColumnProduct, date)
 
   lazy val readFrom          = connProductTable("ev_rpt_thirdvaluation")
   lazy val saveTo            = connBizTable("iproduct_valuation")
-  lazy val readFromCol       = connProductTableColumn("ev_rpt_thirdvaluation", "tradeDate")
-  lazy val saveToCol         = connBizTableColumn("iproduct_valuation", "trade_date")
+  lazy val readFromCol       = connProductTableColumn("ev_rpt_thirdvaluation", timeColumnProduct)
+  lazy val saveToCol         = connBizTableColumn("iproduct_valuation", timeColumnBiz)
   lazy val primaryKeyName    = "PK_ev_rpt_thirdvaluation"
   lazy val newPrimaryColName = "object_id"
-  lazy val newPKCols         = Seq("product_num", "trade_date")
+  lazy val newPKCols         = Seq("product_num", timeColumnBiz)
   lazy val primaryColumn     = Seq("object_id")
   lazy val index             = ("IDX_iproduct_valuation", newPKCols)
 
   lazy val conversionFn = RegimeFn
-    .formatLongToDatetime("trade_date", datetimeFormat)
+    .formatLongToDate(timeColumnBiz, dateFormat)
     .andThen(RegimeFn.concatMultipleColumns(newPrimaryColName, newPKCols, concatenateString))
-  lazy val timeReverseFn = RegimeFn.formatDatetimeToLong("max_trade_date", datetimeFormat)
+  lazy val timeReverseFn = RegimeFn.formatDateToLong("max_trade_date", datetimeFormat)
 
   def process(args: String*)(implicit spark: SparkSession): Unit = args.toList match {
     case Command.Initialize :: _ =>

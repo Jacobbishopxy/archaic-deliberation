@@ -19,7 +19,6 @@ object AShareInformationCitics extends Information {
   lazy val index2      = ("IDX_ashare_information_citics_2", Seq("symbol"))
 
   lazy val compoundPK = Seq("object_id_ad", "object_id_aim", "object_id_ic")
-
   lazy val conversionFn = RegimeFn
     .dropNullRow(compoundPK)
     .andThen(RegimeFn.concatMultipleColumns("object_id", compoundPK, concatenateString))
