@@ -9,13 +9,18 @@ object Common {
 
   val conn = Conn(config.getConfig("biz"))
 
+  object Token {
+    val tradeDate = "trade_date"
+    val symbol    = "symbol"
+  }
+
   def connTable(table: String): ConnTable =
     ConnTable(conn, table)
 
   def connTableColumn(table: String, column: String): ConnTableColumn =
     ConnTableColumn(conn, table, column)
 
-  lazy val datetimeFormat = "yyyyMMddHHmmss"
+  lazy val datetimeFormat = "yyyy-MM-dd HH:mm:ss"
   lazy val dateFormat     = "yyyyMMdd"
 
 }
