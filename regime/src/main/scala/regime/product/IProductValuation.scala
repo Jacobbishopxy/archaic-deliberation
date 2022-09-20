@@ -9,26 +9,26 @@ import regime.product.Common._
 object IProductValuation extends Product {
   lazy val query = RegimeSqlHelper.fromResource("sql/product/IProductValuation.sql")
   lazy val queryFromDate = (date: String) =>
-    RegimeSqlHelper.generateQueryFromDate(query, timeColumnProduct, date)
+    RegimeSqlHelper.generateQueryFromDate(query, Token.timeColumnProduct, date)
   lazy val queryDateRange = (fromDate: String, toDate: String) =>
-    RegimeSqlHelper.generateQueryDateRange(query, timeColumnProduct, (fromDate, toDate))
+    RegimeSqlHelper.generateQueryDateRange(query, Token.timeColumnProduct, (fromDate, toDate))
   lazy val queryAtDate = (date: String) =>
-    RegimeSqlHelper.generateQueryAtDate(query, timeColumnProduct, date)
+    RegimeSqlHelper.generateQueryAtDate(query, Token.timeColumnProduct, date)
 
-  lazy val readFrom          = connProductTable("ev_rpt_thirdvaluation")
-  lazy val saveTo            = connBizTable("iproduct_valuation")
-  lazy val readFromCol       = connProductTableColumn("ev_rpt_thirdvaluation", timeColumnProduct)
-  lazy val saveToCol         = connBizTableColumn("iproduct_valuation", timeColumnBiz)
-  lazy val primaryKeyName    = "PK_ev_rpt_thirdvaluation"
-  lazy val newPrimaryColName = "object_id"
-  lazy val newPKCols         = Seq("product_num", timeColumnBiz)
-  lazy val primaryColumn     = Seq("object_id")
+  lazy val readFrom       = connProductTable("ev_rpt_thirdvaluation")
+  lazy val saveTo         = connBizTable("iproduct_valuation")
+  lazy val readFromCol    = connProductTableColumn("ev_rpt_thirdvaluation", Token.timeColumnProduct)
+  lazy val saveToCol      = connBizTableColumn("iproduct_valuation", Token.timeColumnBiz)
+  lazy val primaryKeyName = "PK_ev_rpt_thirdvaluation"
+  lazy val newPrimaryColName = Token.objectId
+  lazy val newPKCols         = Seq("product_num", Token.timeColumnBiz)
+  lazy val primaryColumn     = Seq(Token.objectId)
   lazy val index             = ("IDX_iproduct_valuation", newPKCols)
 
   lazy val conversionFn = RegimeFn
-    .formatLongToDate(timeColumnBiz, dateFormat)
+    .formatLongToDate(Token.timeColumnBiz, dateFormat)
     .andThen(RegimeFn.concatMultipleColumns(newPrimaryColName, newPKCols, concatenateString))
-  lazy val timeReverseFn = RegimeFn.formatDateToLong(timeColumnBiz, datetimeFormat)
+  lazy val timeReverseFn = RegimeFn.formatDateToLong(Token.timeColumnBiz, datetimeFormat)
 
   def process(args: String*)(implicit spark: SparkSession): Unit = args.toList match {
     case Command.Initialize :: _ =>

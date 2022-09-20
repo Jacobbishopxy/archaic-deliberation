@@ -11,11 +11,11 @@ object AIndexInformation extends Information {
   lazy val query    = RegimeSqlHelper.fromResource("sql/market/information/AIndexInformation.sql")
   lazy val readFrom = connMarketTable("AINDEXMEMBERS")
   lazy val saveTo   = connBizTable("aindex_information")
-  lazy val readFromCol = connMarketTableColumn("AINDEXMEMBERS", timeColumnMarket)
-  lazy val saveToCol   = connBizTableColumn("aindex_information", timeColumnBiz)
-  lazy val primaryKey  = ("PK_aindex_information", Seq("object_id"))
-  lazy val index1      = ("IDX_aindex_information_1", Seq(timeColumnBiz))
-  lazy val index2      = ("IDX_aindex_information_2", Seq("index_symbol", "symbol"))
+  lazy val readFromCol = connMarketTableColumn("AINDEXMEMBERS", Token.timeColumnMarket)
+  lazy val saveToCol   = connBizTableColumn("aindex_information", Token.timeColumnBiz)
+  lazy val primaryKey  = ("PK_aindex_information", Seq(Token.objectId))
+  lazy val index1      = ("IDX_aindex_information_1", Seq(Token.timeColumnBiz))
+  lazy val index2      = ("IDX_aindex_information_2", Seq(Token.indexSymbol, Token.symbol))
 
   lazy val conversionFn = RegimeFn
     .formatStringToDate("in_date", dateFormat)

@@ -12,22 +12,22 @@ object IProductBalance extends Product {
   lazy val queryDateRange = (fromDate: String, toDate: String) =>
     RegimeSqlHelper.generateQueryDateRange(query, "beb.tradeDate", (fromDate, toDate))
 
-  lazy val readFrom          = connProductTable("bside_ev_balancehis")
-  lazy val saveTo            = connBizTable("iproduct_balance")
-  lazy val readFromCol       = connProductTableColumn("bside_ev_balancehis", timeColumnProduct)
-  lazy val saveToCol         = connBizTableColumn("iproduct_balance", timeColumnBiz)
-  lazy val primaryKeyName    = "PK_iproduct_balance"
-  lazy val newPrimaryColName = "object_id"
-  lazy val newPKCols         = Seq(timeColumnBiz, "product_num", "subject_id")
+  lazy val readFrom       = connProductTable("bside_ev_balancehis")
+  lazy val saveTo         = connBizTable("iproduct_balance")
+  lazy val readFromCol    = connProductTableColumn("bside_ev_balancehis", Token.timeColumnProduct)
+  lazy val saveToCol      = connBizTableColumn("iproduct_balance", Token.timeColumnBiz)
+  lazy val primaryKeyName = "PK_iproduct_balance"
+  lazy val newPrimaryColName = Token.objectId
+  lazy val newPKCols         = Seq(Token.timeColumnBiz, "product_num", "subject_id")
   lazy val primaryColumn     = Seq("object_id")
   lazy val index1            = ("IDX_iproduct_balance_1", Seq("product_num"))
   lazy val index2            = ("IDX_iproduct_balance_2", Seq("subject_id"))
-  lazy val index3            = ("IDX_iproduct_balance_3", Seq(timeColumnBiz))
+  lazy val index3            = ("IDX_iproduct_balance_3", Seq(Token.timeColumnBiz))
 
   lazy val conversionFn = RegimeFn
-    .formatLongToDatetime(timeColumnBiz, datetimeFormat)
+    .formatLongToDatetime(Token.timeColumnBiz, datetimeFormat)
     .andThen(RegimeFn.concatMultipleColumns(newPrimaryColName, newPKCols, concatenateString))
-  lazy val timeReverseFn = RegimeFn.formatDatetimeToLong(timeColumnBiz, datetimeFormat)
+  lazy val timeReverseFn = RegimeFn.formatDatetimeToLong(Token.timeColumnBiz, datetimeFormat)
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {

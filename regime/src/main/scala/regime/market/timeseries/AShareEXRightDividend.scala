@@ -10,17 +10,18 @@ import regime.market.Common._
 object AShareEXRightDividend extends TimeSeries {
   lazy val query = RegimeSqlHelper.fromResource("sql/market/timeseries/AShareEXRightDividend.sql")
   lazy val queryFromDate = (date: String) =>
-    RegimeSqlHelper.generateQueryFromDate(query, timeColumnMarket, date)
+    RegimeSqlHelper.generateQueryFromDate(query, Token.timeColumnMarket, date)
   lazy val queryDateRange = (fromDate: String, toDate: String) =>
-    RegimeSqlHelper.generateQueryDateRange(query, timeColumnMarket, (fromDate, toDate))
+    RegimeSqlHelper.generateQueryDateRange(query, Token.timeColumnMarket, (fromDate, toDate))
 
-  lazy val readFrom       = connMarketTable("ASHAREEXRIGHTDIVIDENDRECORD")
-  lazy val saveTo         = connBizTable("ashare_ex_right_dividend_record")
-  lazy val readFromCol    = connMarketTableColumn("ASHAREEXRIGHTDIVIDENDRECORD", timeColumnMarket)
-  lazy val saveToCol      = connBizTableColumn("ashare_ex_right_dividend_record", timeColumnBiz)
+  lazy val readFrom = connMarketTable("ASHAREEXRIGHTDIVIDENDRECORD")
+  lazy val saveTo   = connBizTable("ashare_ex_right_dividend_record")
+  lazy val readFromCol =
+    connMarketTableColumn("ASHAREEXRIGHTDIVIDENDRECORD", Token.timeColumnMarket)
+  lazy val saveToCol = connBizTableColumn("ashare_ex_right_dividend_record", Token.timeColumnBiz)
   lazy val primaryKeyName = "PK_ashare_ex_right_dividend_record"
-  lazy val primaryColumn  = Seq("object_id")
-  lazy val index          = ("IDX_ashare_ex_right_dividend_record", Seq(timeColumnBiz))
+  lazy val primaryColumn  = Seq(Token.objectId)
+  lazy val index          = ("IDX_ashare_ex_right_dividend_record", Seq(Token.timeColumnBiz))
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {

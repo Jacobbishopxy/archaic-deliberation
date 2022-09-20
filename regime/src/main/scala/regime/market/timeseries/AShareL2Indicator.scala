@@ -10,20 +10,20 @@ import regime.market.Common._
 object AShareL2Indicator extends TimeSeries {
   lazy val query = RegimeSqlHelper.fromResource("sql/market/timeseries/AShareL2Indicator.sql")
   lazy val queryFromDate = (date: String) =>
-    RegimeSqlHelper.generateQueryFromDate(query, timeColumnMarket, date)
+    RegimeSqlHelper.generateQueryFromDate(query, Token.timeColumnMarket, date)
   lazy val queryDateRange = (fromDate: String, toDate: String) =>
-    RegimeSqlHelper.generateQueryDateRange(query, timeColumnMarket, (fromDate, toDate))
+    RegimeSqlHelper.generateQueryDateRange(query, Token.timeColumnMarket, (fromDate, toDate))
 
   lazy val readFrom       = connMarketTable("ASHAREL2INDICATORS")
   lazy val saveTo         = connBizTable("ashare_level2_indicator")
-  lazy val readFromCol    = connMarketTableColumn("ASHAREL2INDICATORS", timeColumnMarket)
-  lazy val saveToCol      = connBizTableColumn("ashare_level2_indicator", timeColumnBiz)
+  lazy val readFromCol    = connMarketTableColumn("ASHAREL2INDICATORS", Token.timeColumnMarket)
+  lazy val saveToCol      = connBizTableColumn("ashare_level2_indicator", Token.timeColumnBiz)
   lazy val primaryKeyName = "PK_ashare_level2_indicator"
-  lazy val primaryColumn  = Seq("object_id")
-  lazy val index1         = ("IDX_ashare_level2_indicator1", Seq(timeColumnBiz))
-  lazy val index2         = ("IDX_ashare_level2_indicator2", Seq(timeTradeDate, "symbol"))
+  lazy val primaryColumn  = Seq(Token.objectId)
+  lazy val index1         = ("IDX_ashare_level2_indicator1", Seq(Token.timeColumnBiz))
+  lazy val index2         = ("IDX_ashare_level2_indicator2", Seq(Token.timeTradeDate, Token.symbol))
 
-  lazy val conversionFn = RegimeFn.formatStringToDate(timeTradeDate, dateFormat)
+  lazy val conversionFn = RegimeFn.formatStringToDate(Token.timeTradeDate, dateFormat)
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {

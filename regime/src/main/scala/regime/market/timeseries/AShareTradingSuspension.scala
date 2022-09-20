@@ -10,17 +10,17 @@ import regime.market.Common._
 object AShareTradingSuspension extends TimeSeries {
   lazy val query = RegimeSqlHelper.fromResource("sql/market/timeseries/AShareTradingSuspension.sql")
   lazy val queryFromDate = (date: String) =>
-    RegimeSqlHelper.generateQueryFromDate(query, timeColumnMarket, date)
+    RegimeSqlHelper.generateQueryFromDate(query, Token.timeColumnMarket, date)
   lazy val queryDateRange = (fromDate: String, toDate: String) =>
-    RegimeSqlHelper.generateQueryDateRange(query, timeColumnMarket, (fromDate, toDate))
+    RegimeSqlHelper.generateQueryDateRange(query, Token.timeColumnMarket, (fromDate, toDate))
 
   lazy val readFrom       = connMarketTable("ASHARETRADINGSUSPENSION")
   lazy val saveTo         = connBizTable("ashare_trading_suspension")
-  lazy val readFromCol    = connMarketTableColumn("ASHARETRADINGSUSPENSION", timeColumnMarket)
-  lazy val saveToCol      = connBizTableColumn("ashare_trading_suspension", timeColumnBiz)
+  lazy val readFromCol    = connMarketTableColumn("ASHARETRADINGSUSPENSION", Token.timeColumnMarket)
+  lazy val saveToCol      = connBizTableColumn("ashare_trading_suspension", Token.timeColumnBiz)
   lazy val primaryKeyName = "PK_ashare_trading_suspension"
-  lazy val primaryColumn  = Seq("object_id")
-  lazy val index          = ("IDX_ashare_trading_suspension", Seq(timeColumnBiz))
+  lazy val primaryColumn  = Seq(Token.objectId)
+  lazy val index          = ("IDX_ashare_trading_suspension", Seq(Token.timeColumnBiz))
 
   def process(args: String*)(implicit spark: SparkSession): Unit = {
     args.toList match {

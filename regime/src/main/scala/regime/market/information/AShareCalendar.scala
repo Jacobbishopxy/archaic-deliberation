@@ -11,13 +11,13 @@ object AShareCalendar extends Information {
   lazy val query       = RegimeSqlHelper.fromResource("sql/market/information/AShareCalendar.sql")
   lazy val readFrom    = connMarketTable("ASHARECALENDAR")
   lazy val saveTo      = connBizTable("ashare_calendar")
-  lazy val readFromCol = connMarketTableColumn("ASHARECALENDAR", timeColumnMarket)
-  lazy val saveToCol   = connBizTableColumn("ashare_calendar", timeColumnBiz)
-  lazy val primaryKey  = ("PK_ashare_calendar", Seq("object_id"))
-  lazy val index1      = ("IDX_ashare_calendar_1", Seq(timeTradeDate))
-  lazy val index2      = ("IDX_ashare_calendar_2", Seq(timeColumnBiz))
+  lazy val readFromCol = connMarketTableColumn("ASHARECALENDAR", Token.timeColumnMarket)
+  lazy val saveToCol   = connBizTableColumn("ashare_calendar", Token.timeColumnBiz)
+  lazy val primaryKey  = ("PK_ashare_calendar", Seq(Token.objectId))
+  lazy val index1      = ("IDX_ashare_calendar_1", Seq(Token.timeTradeDate))
+  lazy val index2      = ("IDX_ashare_calendar_2", Seq(Token.timeColumnBiz))
 
-  lazy val conversionFn = RegimeFn.formatStringToDate(timeTradeDate, dateFormat)
+  lazy val conversionFn = RegimeFn.formatStringToDate(Token.timeTradeDate, dateFormat)
 
   def process(args: String*)(implicit spark: SparkSession): Unit =
     args.toList match {

@@ -14,8 +14,12 @@ object Common {
   val connProduct = Conn(productConfig)
   val connBiz     = Conn(bizConfig)
 
-  val timeColumnProduct = "tradeDate"
-  val timeColumnBiz     = "trade_date"
+  object Token {
+    val timeColumnProduct = "tradeDate"
+    val timeColumnBiz     = "trade_date"
+    val objectId          = "object_id"
+    val timeTradeDate     = "trade_date"
+  }
 
   def connProductTable(table: String): ConnTable =
     ConnTable(connProduct, table)
