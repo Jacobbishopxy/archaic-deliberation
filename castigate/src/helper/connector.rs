@@ -8,6 +8,7 @@ use futures::future::BoxFuture;
 use sqlx::mssql::{MssqlPool, MssqlPoolOptions, MssqlRow};
 use sqlx::mysql::{MySqlPool, MySqlPoolOptions, MySqlRow};
 use sqlx::postgres::{PgPool, PgPoolOptions, PgRow};
+use sqlx::Row;
 
 pub enum DB {
     MsSql,
@@ -74,7 +75,20 @@ impl<T: SqlMeta> Castigate<T> {
             None => Err(anyhow!(CONN_N_ERR)),
         }
     }
+
+    pub async fn query_one<'a, D: Send + Unpin + 'a>(
+        &'a self,
+        sql: &'a str,
+        pipe: fn(T::RowType) -> Result<D>,
+    ) -> Result<D> {
+        match self.pool_options.as_ref() {
+            Some(p) => p.query_one(sql, pipe).await,
+            None => Err(anyhow!(CONN_N_ERR)),
+        }
+    }
 }
+
+pub type PipeFn<I, O> = fn(I) -> Result<O>;
 
 pub trait SqlMeta: Sized {
     type FutSelf<'a>: Future<Output = Result<Self>>
@@ -85,7 +99,7 @@ pub trait SqlMeta: Sized {
     where
         Self: 'a;
 
-    type RowType;
+    type RowType: Row;
 
     fn new(conn_str: &str) -> Self::FutSelf<'_>;
 
@@ -96,8 +110,14 @@ pub trait SqlMeta: Sized {
     fn query<'a, T: Send + Unpin + 'a>(
         &'a self,
         sql: &'a str,
-        pipe: fn(Self::RowType) -> Result<T>,
+        pipe: PipeFn<Self::RowType, T>,
     ) -> BoxFuture<'a, Result<Vec<T>>>;
+
+    fn query_one<'a, T: Send + Unpin + 'a>(
+        &'a self,
+        sql: &'a str,
+        pipe: PipeFn<Self::RowType, T>,
+    ) -> BoxFuture<'a, Result<T>>;
 }
 
 impl SqlMeta for MssqlPool {
@@ -128,7 +148,7 @@ impl SqlMeta for MssqlPool {
     fn query<'a, T: Send + Unpin + 'a>(
         &'a self,
         sql: &'a str,
-        pipe: fn(Self::RowType) -> Result<T>,
+        pipe: PipeFn<Self::RowType, T>,
     ) -> BoxFuture<'a, Result<Vec<T>>> {
         let q = async move {
             sqlx::query(sql)
@@ -137,6 +157,22 @@ impl SqlMeta for MssqlPool {
                 .await
                 .map_err(|e| anyhow!(e))
                 .and_then(|r| r.into_iter().collect::<Result<Vec<T>>>())
+        };
+        Box::pin(q)
+    }
+
+    fn query_one<'a, T: Send + Unpin + 'a>(
+        &'a self,
+        sql: &'a str,
+        pipe: PipeFn<Self::RowType, T>,
+    ) -> BoxFuture<'a, Result<T>> {
+        let q = async move {
+            sqlx::query(sql)
+                .try_map(|r| Ok(pipe(r).map_err(|e| anyhow!(e))))
+                .fetch_one(self)
+                .await
+                .map_err(|e| anyhow!(e))
+                .and_then(|r| r)
         };
         Box::pin(q)
     }
@@ -170,7 +206,7 @@ impl SqlMeta for MySqlPool {
     fn query<'a, T: Send + Unpin + 'a>(
         &'a self,
         sql: &'a str,
-        pipe: fn(Self::RowType) -> Result<T>,
+        pipe: PipeFn<Self::RowType, T>,
     ) -> BoxFuture<'a, Result<Vec<T>>> {
         let q = async move {
             sqlx::query(sql)
@@ -179,6 +215,22 @@ impl SqlMeta for MySqlPool {
                 .await
                 .map_err(|e| anyhow!(e))
                 .and_then(|r| r.into_iter().collect::<Result<Vec<T>>>())
+        };
+        Box::pin(q)
+    }
+
+    fn query_one<'a, T: Send + Unpin + 'a>(
+        &'a self,
+        sql: &'a str,
+        pipe: PipeFn<Self::RowType, T>,
+    ) -> BoxFuture<'a, Result<T>> {
+        let q = async move {
+            sqlx::query(sql)
+                .try_map(|r| Ok(pipe(r).map_err(|e| anyhow!(e))))
+                .fetch_one(self)
+                .await
+                .map_err(|e| anyhow!(e))
+                .and_then(|r| r)
         };
         Box::pin(q)
     }
@@ -212,7 +264,7 @@ impl SqlMeta for PgPool {
     fn query<'a, T: Send + Unpin + 'a>(
         &'a self,
         sql: &'a str,
-        pipe: fn(Self::RowType) -> Result<T>,
+        pipe: PipeFn<Self::RowType, T>,
     ) -> BoxFuture<'a, Result<Vec<T>>> {
         let q = async move {
             sqlx::query(sql)
@@ -224,6 +276,22 @@ impl SqlMeta for PgPool {
         };
         Box::pin(q)
     }
+
+    fn query_one<'a, T: Send + Unpin + 'a>(
+        &'a self,
+        sql: &'a str,
+        pipe: PipeFn<Self::RowType, T>,
+    ) -> BoxFuture<'a, Result<T>> {
+        let q = async move {
+            sqlx::query(sql)
+                .try_map(|r| Ok(pipe(r).map_err(|e| anyhow!(e))))
+                .fetch_one(self)
+                .await
+                .map_err(|e| anyhow!(e))
+                .and_then(|r| r)
+        };
+        Box::pin(q)
+    }
 }
 
 #[cfg(test)]
@@ -232,6 +300,7 @@ mod test_connector {
 
     use super::*;
 
+    const URL: &str = "postgres://root:secret@localhost:5432/dev";
     #[allow(dead_code)]
     #[derive(Debug)]
     struct User {
@@ -263,9 +332,7 @@ mod test_connector {
 
     #[tokio::test]
     async fn connection_success() {
-        let url = "postgres://root:secret@localhost:5432/dev";
-
-        let mut ct = Castigate::<PgPool>::new(url);
+        let mut ct = Castigate::<PgPool>::new(URL);
         ct.connect().await.expect("Connection success");
 
         let sql = "SELECT * FROM users";
