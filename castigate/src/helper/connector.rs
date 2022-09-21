@@ -31,6 +31,7 @@ impl FromStr for DB {
     }
 }
 
+//
 pub struct Castigate<T: SqlMeta> {
     conn_str: String,
     pool_options: Option<T>,
@@ -68,7 +69,7 @@ impl<T: SqlMeta> Castigate<T> {
     pub async fn query<'a, D: Send + Unpin + 'a>(
         &'a self,
         sql: &'a str,
-        pipe: fn(T::RowType) -> Result<D>,
+        pipe: PipeFn<T::RowType, D>,
     ) -> Result<Vec<D>> {
         match self.pool_options.as_ref() {
             Some(p) => p.query(sql, pipe).await,
@@ -79,10 +80,30 @@ impl<T: SqlMeta> Castigate<T> {
     pub async fn query_one<'a, D: Send + Unpin + 'a>(
         &'a self,
         sql: &'a str,
-        pipe: fn(T::RowType) -> Result<D>,
+        pipe: PipeFn<T::RowType, D>,
     ) -> Result<D> {
         match self.pool_options.as_ref() {
             Some(p) => p.query_one(sql, pipe).await,
+            None => Err(anyhow!(CONN_N_ERR)),
+        }
+    }
+
+    pub async fn query_as<'a, D: Send + Unpin + for<'r> FromRow<'r, T::RowType>>(
+        &'a self,
+        sql: &'a str,
+    ) -> Result<Vec<D>> {
+        match self.pool_options.as_ref() {
+            Some(p) => T::query_as(p, sql).await,
+            None => Err(anyhow!(CONN_N_ERR)),
+        }
+    }
+
+    pub async fn query_as_one<'a, D: Send + Unpin + for<'r> FromRow<'r, T::RowType>>(
+        &'a self,
+        sql: &'a str,
+    ) -> Result<D> {
+        match self.pool_options.as_ref() {
+            Some(p) => T::query_one_as(p, sql).await,
             None => Err(anyhow!(CONN_N_ERR)),
         }
     }
@@ -389,43 +410,68 @@ mod test_connector {
     use super::*;
 
     const URL: &str = "postgres://root:secret@localhost:5432/dev";
-    #[allow(dead_code)]
-    #[derive(Debug)]
-    struct User {
-        email: String,
-        nickname: String,
-        hash: String,
-        role: String,
-    }
-
-    impl User {
-        fn new(email: String, nickname: String, hash: String, role: String) -> Self {
-            User {
-                email,
-                nickname,
-                hash,
-                role,
-            }
-        }
-
-        fn from_pg_row(row: PgRow) -> Result<Self> {
-            let email: String = row.try_get(0)?;
-            let nickname: String = row.try_get(1)?;
-            let hash: String = row.try_get(2)?;
-            let role: String = row.try_get(3)?;
-
-            Ok(Self::new(email, nickname, hash, role))
-        }
-    }
 
     #[tokio::test]
     async fn query_success() {
+        #[allow(dead_code)]
+        #[derive(Debug)]
+        struct User {
+            email: String,
+            nickname: String,
+            hash: String,
+            role: String,
+        }
+
+        impl User {
+            fn new(email: String, nickname: String, hash: String, role: String) -> Self {
+                User {
+                    email,
+                    nickname,
+                    hash,
+                    role,
+                }
+            }
+
+            fn from_pg_row(row: PgRow) -> Result<Self> {
+                let email: String = row.try_get(0)?;
+                let nickname: String = row.try_get(1)?;
+                let hash: String = row.try_get(2)?;
+                let role: String = row.try_get(3)?;
+
+                Ok(Self::new(email, nickname, hash, role))
+            }
+        }
+
         let mut ct = Castigate::<PgPool>::new(URL);
+
         ct.connect().await.expect("Connection success");
 
         let sql = "SELECT * FROM users";
 
         let res = ct.query(sql, User::from_pg_row).await;
+
+        println!("{:?}", res);
+
+        assert!(res.is_ok());
+    }
+
+    #[tokio::test]
+    async fn query_as_success() {
+        #[allow(dead_code)]
+        #[derive(sqlx::FromRow, Debug)]
+        struct Users {
+            email: String,
+            nickname: String,
+            hash: String,
+            role: String,
+        }
+
+        let mut ct = Castigate::<PgPool>::new(URL);
+        ct.connect().await.expect("Connection success");
+
+        let sql = "SELECT * FROM users";
+
+        let res = ct.query_as::<Users>(sql).await;
 
         println!("{:?}", res);
 
