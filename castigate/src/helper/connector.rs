@@ -5,10 +5,10 @@ use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
 use futures::future::BoxFuture;
-use sqlx::mssql::{MssqlPool, MssqlPoolOptions, MssqlRow};
-use sqlx::mysql::{MySqlPool, MySqlPoolOptions, MySqlRow};
-use sqlx::postgres::{PgPool, PgPoolOptions, PgRow};
-use sqlx::{FromRow, Row};
+use sqlx::mssql::{MssqlPool, MssqlPoolOptions};
+use sqlx::mysql::{MySqlPool, MySqlPoolOptions};
+use sqlx::postgres::{PgPool, PgPoolOptions};
+use sqlx::{Database, FromRow, Mssql, MySql, Pool, Postgres};
 
 pub enum DB {
     MsSql,
@@ -31,14 +31,18 @@ impl FromStr for DB {
     }
 }
 
-//
+const CONN_E_ERR: &str = "Castigate has already been connected!";
+const CONN_N_ERR: &str = "Castigate has not establish a connection yet!";
+
+pub type PipeFn<I, O> = fn(I) -> Result<O>;
+
+/// Castigate
+///
+/// Database connector which supports Mssql/Mysql/Postgres.
 pub struct Castigate<T: SqlMeta> {
     conn_str: String,
     pool_options: Option<T>,
 }
-
-const CONN_E_ERR: &str = "Castigate has already been connected!";
-const CONN_N_ERR: &str = "Castigate has not establish a connection yet!";
 
 impl<T: SqlMeta> Castigate<T> {
     pub fn new<S: Into<String>>(conn_str: S) -> Self {
@@ -66,346 +70,217 @@ impl<T: SqlMeta> Castigate<T> {
         }
     }
 
-    pub async fn query<'a, D: Send + Unpin + 'a>(
+    pub async fn query<'a, D>(
         &'a self,
         sql: &'a str,
-        pipe: PipeFn<T::RowType, D>,
-    ) -> Result<Vec<D>> {
+        pipe: PipeFn<<T::DB as Database>::Row, D>,
+    ) -> Result<Vec<D>>
+    where
+        D: Send + Unpin + 'a,
+    {
         match self.pool_options.as_ref() {
             Some(p) => p.query(sql, pipe).await,
             None => Err(anyhow!(CONN_N_ERR)),
         }
     }
 
-    pub async fn query_one<'a, D: Send + Unpin + 'a>(
+    pub async fn query_one<'a, D>(
         &'a self,
         sql: &'a str,
-        pipe: PipeFn<T::RowType, D>,
-    ) -> Result<D> {
+        pipe: PipeFn<<T::DB as Database>::Row, D>,
+    ) -> Result<D>
+    where
+        D: Send + Unpin + 'a,
+    {
         match self.pool_options.as_ref() {
             Some(p) => p.query_one(sql, pipe).await,
             None => Err(anyhow!(CONN_N_ERR)),
         }
     }
 
-    pub async fn query_as<'a, D: Send + Unpin + for<'r> FromRow<'r, T::RowType>>(
-        &'a self,
-        sql: &'a str,
-    ) -> Result<Vec<D>> {
+    pub async fn query_as<'a, D>(&'a self, sql: &'a str) -> Result<Vec<D>>
+    where
+        D: Send + Unpin + for<'r> FromRow<'r, <T::DB as Database>::Row>,
+    {
         match self.pool_options.as_ref() {
-            Some(p) => T::query_as(p, sql).await,
+            Some(p) => p.query_as(sql).await,
             None => Err(anyhow!(CONN_N_ERR)),
         }
     }
 
-    pub async fn query_as_one<'a, D: Send + Unpin + for<'r> FromRow<'r, T::RowType>>(
-        &'a self,
-        sql: &'a str,
-    ) -> Result<D> {
+    pub async fn query_one_as<'a, D>(&'a self, sql: &'a str) -> Result<D>
+    where
+        D: Send + Unpin + for<'r> FromRow<'r, <T::DB as Database>::Row>,
+    {
         match self.pool_options.as_ref() {
-            Some(p) => T::query_one_as(p, sql).await,
+            Some(p) => p.query_one_as(sql).await,
             None => Err(anyhow!(CONN_N_ERR)),
         }
     }
 }
 
-pub type PipeFn<I, O> = fn(I) -> Result<O>;
-
 pub trait SqlMeta: Sized {
+    // async function's return for self constructor
     type FutSelf<'a>: Future<Output = Result<Self>>
     where
         Self: 'a;
 
+    // async function's return without return's type
     type FutNil<'a>: Future<Output = Result<()>>
     where
         Self: 'a;
 
-    type RowType: Row;
+    // trait from `sqlx`, only accepts `Mssql`/`MySql`/`Postgres`
+    type DB: Database;
 
+    // constructor
     fn new(conn_str: &str) -> Self::FutSelf<'_>;
 
+    // close connection
     fn close(&self) -> Self::FutNil<'_>;
 
+    // check if connection is closed
     fn is_closed(&self) -> bool;
 
-    fn query<'a, T: Send + Unpin + 'a>(
+    // query with a pipe function handling with `Database::Row`
+    fn query<'a, D>(
         &'a self,
         sql: &'a str,
-        pipe: PipeFn<Self::RowType, T>,
-    ) -> BoxFuture<'a, Result<Vec<T>>>;
+        pipe: PipeFn<<Self::DB as Database>::Row, D>,
+    ) -> BoxFuture<'a, Result<Vec<D>>>
+    where
+        D: Send + Unpin + 'a;
 
-    fn query_one<'a, T: Send + Unpin + 'a>(
+    // query (limit one)
+    fn query_one<'a, D>(
         &'a self,
         sql: &'a str,
-        pipe: PipeFn<Self::RowType, T>,
-    ) -> BoxFuture<'a, Result<T>>;
+        pipe: PipeFn<<Self::DB as Database>::Row, D>,
+    ) -> BoxFuture<'a, Result<D>>
+    where
+        D: Send + Unpin + 'a;
 
-    fn query_as<'a, T: Send + Unpin + for<'r> FromRow<'r, Self::RowType>>(
-        &'a self,
-        sql: &'a str,
-    ) -> BoxFuture<'a, Result<Vec<T>>>;
+    // query with an explicit type announcement, who implemented `FrowRow`
+    fn query_as<'a, D>(&'a self, sql: &'a str) -> BoxFuture<'a, Result<Vec<D>>>
+    where
+        D: Send + Unpin + for<'r> FromRow<'r, <Self::DB as Database>::Row>;
 
-    fn query_one_as<'a, T: Send + Unpin + for<'r> FromRow<'r, Self::RowType>>(
+    // query (limit one)
+    fn query_one_as<'a, D>(&'a self, sql: &'a str) -> BoxFuture<'a, Result<D>>
+    where
+        D: Send + Unpin + for<'r> FromRow<'r, <Self::DB as Database>::Row>;
+
+    // execute SQL statement without output
+    fn execute<'a>(
         &'a self,
         sql: &'a str,
-    ) -> BoxFuture<'a, Result<T>>;
+    ) -> BoxFuture<'a, Result<<Self::DB as Database>::QueryResult>>;
 }
 
-impl SqlMeta for MssqlPool {
-    type FutSelf<'a> = impl Future<Output = Result<Self>>;
+macro_rules! impl_sql_meta {
+    ($db:ident, $db_pool_options:ident, $db_pool:ident) => {
+        impl SqlMeta for Pool<$db> {
+            type FutSelf<'a> = impl Future<Output = Result<Self>>;
+            type FutNil<'a> = impl Future<Output = Result<()>>;
+            type DB = $db;
 
-    type FutNil<'a> = impl Future<Output = Result<()>>;
+            fn new(conn_str: &str) -> Self::FutSelf<'_> {
+                async move {
+                    let po = $db_pool_options::new().connect(conn_str).await?;
+                    Ok(po)
+                }
+            }
 
-    type RowType = MssqlRow;
+            fn close(&self) -> Self::FutNil<'_> {
+                async move {
+                    $db_pool::close(self).await;
+                    Ok(())
+                }
+            }
 
-    fn new(conn_str: &str) -> Self::FutSelf<'_> {
-        async move {
-            let pg = MssqlPoolOptions::new().connect(conn_str).await?;
-            Ok(pg)
+            fn is_closed(&self) -> bool {
+                $db_pool::is_closed(self)
+            }
+
+            fn query<'a, T: Send + Unpin + 'a>(
+                &'a self,
+                sql: &'a str,
+                pipe: PipeFn<<Self::DB as Database>::Row, T>,
+            ) -> BoxFuture<'a, Result<Vec<T>>> {
+                let q = async move {
+                    sqlx::query(sql)
+                        .try_map(|r| Ok(pipe(r).map_err(|e| anyhow!(e))))
+                        .fetch_all(self)
+                        .await
+                        .map_err(|e| anyhow!(e))
+                        .and_then(|r| r.into_iter().collect::<Result<Vec<T>>>())
+                };
+                Box::pin(q)
+            }
+
+            fn query_one<'a, T: Send + Unpin + 'a>(
+                &'a self,
+                sql: &'a str,
+                pipe: PipeFn<<Self::DB as Database>::Row, T>,
+            ) -> BoxFuture<'a, Result<T>> {
+                let q = async move {
+                    sqlx::query(sql)
+                        .try_map(|r| Ok(pipe(r).map_err(|e| anyhow!(e))))
+                        .fetch_one(self)
+                        .await
+                        .map_err(|e| anyhow!(e))
+                        .and_then(|r| r)
+                };
+                Box::pin(q)
+            }
+
+            fn query_as<'a, T: Send + Unpin + for<'r> FromRow<'r, <Self::DB as Database>::Row>>(
+                &'a self,
+                sql: &'a str,
+            ) -> BoxFuture<'a, Result<Vec<T>>> {
+                let q = async move {
+                    sqlx::query_as::<_, T>(sql)
+                        .fetch_all(self)
+                        .await
+                        .map_err(|e| anyhow!(e))
+                };
+                Box::pin(q)
+            }
+
+            fn query_one_as<
+                'a,
+                T: Send + Unpin + for<'r> FromRow<'r, <Self::DB as Database>::Row>,
+            >(
+                &'a self,
+                sql: &'a str,
+            ) -> BoxFuture<'a, Result<T>> {
+                let q = async move {
+                    sqlx::query_as::<_, T>(sql)
+                        .fetch_one(self)
+                        .await
+                        .map_err(|e| anyhow!(e))
+                };
+                Box::pin(q)
+            }
+
+            fn execute<'a>(
+                &'a self,
+                sql: &'a str,
+            ) -> BoxFuture<'a, Result<<Self::DB as Database>::QueryResult>> {
+                let q = async move { sqlx::query(sql).execute(self).await.map_err(|e| anyhow!(e)) };
+                Box::pin(q)
+            }
         }
-    }
-
-    fn close(&self) -> Self::FutNil<'_> {
-        async move {
-            MssqlPool::close(self).await;
-            Ok(())
-        }
-    }
-
-    fn is_closed(&self) -> bool {
-        MssqlPool::is_closed(self)
-    }
-
-    fn query<'a, T: Send + Unpin + 'a>(
-        &'a self,
-        sql: &'a str,
-        pipe: PipeFn<Self::RowType, T>,
-    ) -> BoxFuture<'a, Result<Vec<T>>> {
-        let q = async move {
-            sqlx::query(sql)
-                .try_map(|r| Ok(pipe(r).map_err(|e| anyhow!(e))))
-                .fetch_all(self)
-                .await
-                .map_err(|e| anyhow!(e))
-                .and_then(|r| r.into_iter().collect::<Result<Vec<T>>>())
-        };
-        Box::pin(q)
-    }
-
-    fn query_one<'a, T: Send + Unpin + 'a>(
-        &'a self,
-        sql: &'a str,
-        pipe: PipeFn<Self::RowType, T>,
-    ) -> BoxFuture<'a, Result<T>> {
-        let q = async move {
-            sqlx::query(sql)
-                .try_map(|r| Ok(pipe(r).map_err(|e| anyhow!(e))))
-                .fetch_one(self)
-                .await
-                .map_err(|e| anyhow!(e))
-                .and_then(|r| r)
-        };
-        Box::pin(q)
-    }
-
-    fn query_as<'a, T: Send + Unpin + for<'r> FromRow<'r, Self::RowType>>(
-        &'a self,
-        sql: &'a str,
-    ) -> BoxFuture<'a, Result<Vec<T>>> {
-        let q = async move {
-            sqlx::query_as::<_, T>(sql)
-                .fetch_all(self)
-                .await
-                .map_err(|e| anyhow!(e))
-        };
-        Box::pin(q)
-    }
-
-    fn query_one_as<'a, T: Send + Unpin + for<'r> FromRow<'r, Self::RowType>>(
-        &'a self,
-        sql: &'a str,
-    ) -> BoxFuture<'a, Result<T>> {
-        let q = async move {
-            sqlx::query_as::<_, T>(sql)
-                .fetch_one(self)
-                .await
-                .map_err(|e| anyhow!(e))
-        };
-        Box::pin(q)
-    }
+    };
 }
 
-impl SqlMeta for MySqlPool {
-    type FutSelf<'a> = impl Future<Output = Result<Self>>;
-
-    type FutNil<'a> = impl Future<Output = Result<()>>;
-
-    type RowType = MySqlRow;
-
-    fn new(conn_str: &str) -> Self::FutSelf<'_> {
-        async move {
-            let pg = MySqlPoolOptions::new().connect(conn_str).await?;
-            Ok(pg)
-        }
-    }
-
-    fn close(&self) -> Self::FutNil<'_> {
-        async move {
-            MySqlPool::close(self).await;
-            Ok(())
-        }
-    }
-
-    fn is_closed(&self) -> bool {
-        MySqlPool::is_closed(self)
-    }
-
-    fn query<'a, T: Send + Unpin + 'a>(
-        &'a self,
-        sql: &'a str,
-        pipe: PipeFn<Self::RowType, T>,
-    ) -> BoxFuture<'a, Result<Vec<T>>> {
-        let q = async move {
-            sqlx::query(sql)
-                .try_map(|r| Ok(pipe(r).map_err(|e| anyhow!(e))))
-                .fetch_all(self)
-                .await
-                .map_err(|e| anyhow!(e))
-                .and_then(|r| r.into_iter().collect::<Result<Vec<T>>>())
-        };
-        Box::pin(q)
-    }
-
-    fn query_one<'a, T: Send + Unpin + 'a>(
-        &'a self,
-        sql: &'a str,
-        pipe: PipeFn<Self::RowType, T>,
-    ) -> BoxFuture<'a, Result<T>> {
-        let q = async move {
-            sqlx::query(sql)
-                .try_map(|r| Ok(pipe(r).map_err(|e| anyhow!(e))))
-                .fetch_one(self)
-                .await
-                .map_err(|e| anyhow!(e))
-                .and_then(|r| r)
-        };
-        Box::pin(q)
-    }
-
-    fn query_as<'a, T: Send + Unpin + for<'r> FromRow<'r, Self::RowType>>(
-        &'a self,
-        sql: &'a str,
-    ) -> BoxFuture<'a, Result<Vec<T>>> {
-        let q = async move {
-            sqlx::query_as::<_, T>(sql)
-                .fetch_all(self)
-                .await
-                .map_err(|e| anyhow!(e))
-        };
-        Box::pin(q)
-    }
-
-    fn query_one_as<'a, T: Send + Unpin + for<'r> FromRow<'r, Self::RowType>>(
-        &'a self,
-        sql: &'a str,
-    ) -> BoxFuture<'a, Result<T>> {
-        let q = async move {
-            sqlx::query_as::<_, T>(sql)
-                .fetch_one(self)
-                .await
-                .map_err(|e| anyhow!(e))
-        };
-        Box::pin(q)
-    }
-}
-
-impl SqlMeta for PgPool {
-    type FutSelf<'a> = impl Future<Output = Result<Self>>;
-
-    type FutNil<'a> = impl Future<Output = Result<()>>;
-
-    type RowType = PgRow;
-
-    fn new(conn_str: &str) -> Self::FutSelf<'_> {
-        async move {
-            let pg = PgPoolOptions::new().connect(conn_str).await?;
-            Ok(pg)
-        }
-    }
-
-    fn close(&self) -> Self::FutNil<'_> {
-        async move {
-            PgPool::close(self).await;
-            Ok(())
-        }
-    }
-
-    fn is_closed(&self) -> bool {
-        PgPool::is_closed(self)
-    }
-
-    fn query<'a, T: Send + Unpin + 'a>(
-        &'a self,
-        sql: &'a str,
-        pipe: PipeFn<Self::RowType, T>,
-    ) -> BoxFuture<'a, Result<Vec<T>>> {
-        let q = async move {
-            sqlx::query(sql)
-                .try_map(|r| Ok(pipe(r).map_err(|e| anyhow!(e))))
-                .fetch_all(self)
-                .await
-                .map_err(|e| anyhow!(e))
-                .and_then(|r| r.into_iter().collect::<Result<Vec<T>>>())
-        };
-        Box::pin(q)
-    }
-
-    fn query_one<'a, T: Send + Unpin + 'a>(
-        &'a self,
-        sql: &'a str,
-        pipe: PipeFn<Self::RowType, T>,
-    ) -> BoxFuture<'a, Result<T>> {
-        let q = async move {
-            sqlx::query(sql)
-                .try_map(|r| Ok(pipe(r).map_err(|e| anyhow!(e))))
-                .fetch_one(self)
-                .await
-                .map_err(|e| anyhow!(e))
-                .and_then(|r| r)
-        };
-        Box::pin(q)
-    }
-
-    fn query_as<'a, T: Send + Unpin + for<'r> FromRow<'r, Self::RowType>>(
-        &'a self,
-        sql: &'a str,
-    ) -> BoxFuture<'a, Result<Vec<T>>> {
-        let q = async move {
-            sqlx::query_as::<_, T>(sql)
-                .fetch_all(self)
-                .await
-                .map_err(|e| anyhow!(e))
-        };
-        Box::pin(q)
-    }
-
-    fn query_one_as<'a, T: Send + Unpin + for<'r> FromRow<'r, Self::RowType>>(
-        &'a self,
-        sql: &'a str,
-    ) -> BoxFuture<'a, Result<T>> {
-        let q = async move {
-            sqlx::query_as::<_, T>(sql)
-                .fetch_one(self)
-                .await
-                .map_err(|e| anyhow!(e))
-        };
-        Box::pin(q)
-    }
-}
+impl_sql_meta!(Mssql, MssqlPoolOptions, MssqlPool);
+impl_sql_meta!(MySql, MySqlPoolOptions, MySqlPool);
+impl_sql_meta!(Postgres, PgPoolOptions, PgPool);
 
 #[cfg(test)]
 mod test_connector {
-    use sqlx::Row;
+    use sqlx::{postgres::PgRow, Row};
 
     use super::*;
 
