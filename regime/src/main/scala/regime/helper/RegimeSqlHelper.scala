@@ -426,6 +426,22 @@ object RegimeSqlHelper {
     WHERE $column = '$date'
     """
 
+  /** Create a view
+    *
+    * @param create
+    * @param name
+    * @param query
+    * @return
+    */
+  def generateCreateView(create: CreateStrategy.Value, name: String, query: String) = create match {
+    case CreateStrategy.Skip => s"""
+    CREATE VIEW $name AS $query
+    """
+    case CreateStrategy.Replace => s"""
+    CREATE OR REPLACE VIEW $name AS $query
+    """
+  }
+
   // ===============================================================================================
   // Spark SQL
   // ===============================================================================================
@@ -447,6 +463,13 @@ object RegimeSqlHelper {
 object UpsertAction extends Enumeration {
   type UpsertAction = Value
   val DoNothing, DoUpdate = Value
+}
+
+/** The strategy of creating table or view if exists.
+  */
+object CreateStrategy extends Enumeration {
+  type CreateStrategy = Value
+  val Skip, Replace = Value
 }
 
 /** OnDelete/OnUpdate. Private marker

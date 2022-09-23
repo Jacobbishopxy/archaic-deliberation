@@ -16,16 +16,23 @@ import regime.{Conn, ConnTable, ConnTableColumn, DriverType}
   */
 object RegimeSyncHelper {
 
+  val log = LogManager.getRootLogger
+  log.setLevel(Level.INFO)
+
   // ===============================================================================================
   // private helper functions
   // ===============================================================================================
 
-  val log = LogManager.getRootLogger
-  log.setLevel(Level.INFO)
-
-  private lazy val sourceViewName = "SOURCE_DF"
-  private lazy val targetViewName = "TARGET_DF"
-
+  /** A curry function used by all the other Sync functions.
+    *
+    * Get the last update time from the target data if the source data is heading forward.
+    *
+    * @param sourceConn
+    * @param targetConn
+    * @param timeCvtFn
+    * @param fn
+    * @param spark
+    */
   private def lastUpdateTimeCurrying(
       sourceConn: ConnTableColumn,
       targetConn: ConnTableColumn,
@@ -47,26 +54,10 @@ object RegimeSyncHelper {
     )
     val targetDf = timeCvtFn.fold(rawTargetDf)(_(rawTargetDf))
 
-    // create temp views
-    sourceDf.createOrReplaceTempView(sourceViewName)
-    targetDf.createOrReplaceTempView(targetViewName)
-
-    // first value from each view
-    val sourceFirstValue = RegimeSqlHelper.generateGetFirstValue(sourceViewName, sourceConn.column)
-    val targetFirstValue = RegimeSqlHelper.generateGetFirstValue(targetViewName, targetConn.column)
-
-    val resRow = spark
-      .sql(s"""SELECT if(($sourceFirstValue) > ($targetFirstValue),($targetFirstValue),NULL)""")
-      .toDF()
-      .first()
-
-    if (resRow.isNullAt(0)) {
-      log.info("No update date has been found")
-      None
-    } else {
-      val lastDate = resRow.get(0).toString()
-      log.info(s"Last date: $lastDate")
-      Some(fn(sourceHelper, targetHelper, lastDate))
+    // get the lesser value from target table if exists,
+    // and if value exists, execute `fn`
+    RegimeDFHelper.checkIfTargetValueIsLesser(sourceDf, targetDf).map { lv =>
+      fn(sourceHelper, targetHelper, lv.toString)
     }
   }
 
@@ -77,6 +68,7 @@ object RegimeSyncHelper {
   // 1. batchUpsert
   // 1. insertFromLastUpdateTime
   // 1. upsertFromLastUpdateTime
+  // 1. replaceAllIfLastUpdateTimeChanged
   // ===============================================================================================
 
   /** Generate BatchOption by counting the maximum size of a table
