@@ -57,6 +57,7 @@ object RegimeSyncHelper {
     // get the lesser value from target table if exists,
     // and if value exists, execute `fn`
     RegimeDFHelper.checkIfTargetValueIsLesser(sourceDf, targetDf).map { lv =>
+      log.info(s"Last update time is $lv")
       fn(sourceHelper, targetHelper, lv.toString)
     }
   }

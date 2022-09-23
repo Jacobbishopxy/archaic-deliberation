@@ -71,7 +71,7 @@ object RegimeFn {
     df =>
       df.withColumn(
         columnName,
-        date_format(col(columnName) + "000000", timestampFormat).cast("long")
+        date_format(col(columnName), timestampFormat).cast("long")
       )
 
   def concatMultipleColumns(

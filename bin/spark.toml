@@ -13,6 +13,10 @@ SPARK_EXECUTOR_CORES = "8"
 SPARK_EXECUTOR_MEMORY = "60g"
 SPARK_EXECUTOR_EXTRAJAVAOPTIONS = "-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8"
 
+# ===============================================================================================
+# Basic commands
+# ===============================================================================================
+
 # cargo make --makefile spark.toml check-vars
 [tasks.check-vars]
 script = '''
@@ -83,8 +87,8 @@ kubectl run \
 '''
 
 # [Dev use] Minimize executor
-# cargo make --makefile spark.toml exec-task Information AIndexInformation SyncAll
-[tasks.exec-task-0]
+# cargo make --makefile spark.toml exec-task-restricted Information AIndexInformation SyncAll
+[tasks.exec-task-restricted]
 script = '''
 kubectl run \
   --namespace ${K8S_NAMESPACE} ${APP_POD_TASK} \
@@ -108,12 +112,165 @@ kubectl run \
   ${SPARK_APP} ${@}
 '''
 
-# [tasks.test-flow]
-# env = { SOME_ENV_VAR = "value" }
-# run_task = "actual-task"
+[tasks.cron-task]
+condition = { env_set = ["CRON_POD_TASK", "TASK_TYPE", "TASK", "COMMAND"] }
+script = '''
+kubectl run \
+  --namespace ${K8S_NAMESPACE} ${CRON_POD_TASK} \
+  --rm \
+  --tty -i \
+  --restart Never \
+  --image ${K8S_SPARK_CONTAINER_IMAGE} \
+  -- \
+  spark-submit \
+  --master ${SPARK_ADDR} \
+  --deploy-mode cluster \
+  --conf spark.driver.memory=${SPARK_DRIVER_MEMORY} \
+  --conf spark.executor.memory=${SPARK_EXECUTOR_MEMORY} \
+  --packages ${APP_EXTRA_PACAKGES} \
+  --jars ${SPARK_JARS_MSSQL},${SPARK_JARS_MYSQL},${SPARK_JARS_POSTGRES} \
+  --class regime.Main \
+  ${SPARK_APP} ${TASK_TYPE} ${TASK} ${COMMAND}
+'''
 
-# [tasks.actual-task]
-# condition = { env_set = [ "SOME_ENV_VAR" ] }
-# script = '''
-# echo var: ${SOME_ENV_VAR}
-# '''
+# ===============================================================================================
+# Cron: Market Information
+# ===============================================================================================
+
+[tasks.cron-market-information-1]
+env = { CRON_POD_TASK = "regime-cron-information-1", TASK_TYPE = "Information", TASK = "AShareCalendar", COMMAND = "SyncAll" }
+run_task = "cron-task"
+
+[tasks.cron-market-information-2]
+env = { CRON_POD_TASK = "regime-cron-information-2", TASK_TYPE = "Information", TASK = "AShareInformationCitics", COMMAND = "SyncAll" }
+run_task = "cron-task"
+
+[tasks.cron-market-information-3]
+env = { CRON_POD_TASK = "regime-cron-information-3", TASK_TYPE = "Information", TASK = "AShareInformationWind", COMMAND = "SyncAll" }
+run_task = "cron-task"
+
+[tasks.cron-market-information-4]
+env = { CRON_POD_TASK = "regime-cron-information-4", TASK_TYPE = "Information", TASK = "AIndexInformation", COMMAND = "SyncAll" }
+run_task = "cron-task"
+
+[tasks.cron-market-information-5]
+env = { CRON_POD_TASK = "regime-cron-information-5", TASK_TYPE = "Information", TASK = "AIndexInformationCitics", COMMAND = "SyncAll" }
+run_task = "cron-task"
+
+[tasks.cron-market-information-6]
+env = { CRON_POD_TASK = "regime-cron-information-6", TASK_TYPE = "Information", TASK = "AIndexInformationWind", COMMAND = "SyncAll" }
+run_task = "cron-task"
+
+[tasks.cron-market-information]
+run_task = { name = [
+  "cron-market-information-1",
+  "cron-market-information-2",
+  "cron-market-information-3",
+  "cron-market-information-4",
+  "cron-market-information-5",
+  "cron-market-information-6",
+], parallel = true, fork = true}
+
+# ===============================================================================================
+# Cron: Market TimeSeries
+# ===============================================================================================
+
+[tasks.cron-market-timeseries-1]
+env = { CRON_POD_TASK = "regime-cron-timeseries-1", TASK_TYPE = "TimeSeries", TASK = "AShareTradingSuspension", COMMAND = "SyncFromLastUpdate" }
+run_task = "cron-task"
+
+[tasks.cron-market-timeseries-2]
+env = { CRON_POD_TASK = "regime-cron-timeseries-2", TASK_TYPE = "TimeSeries", TASK = "AShareEXRightDividend", COMMAND = "SyncFromLastUpdate" }
+run_task = "cron-task"
+
+[tasks.cron-market-timeseries-3]
+env = { CRON_POD_TASK = "regime-cron-timeseries-3", TASK_TYPE = "TimeSeries", TASK = "AShareEODPrices", COMMAND = "SyncFromLastUpdate" }
+run_task = "cron-task"
+
+[tasks.cron-market-timeseries-4]
+env = { CRON_POD_TASK = "regime-cron-timeseries-4", TASK_TYPE = "TimeSeries", TASK = "AShareYield", COMMAND = "SyncFromLastUpdate" }
+run_task = "cron-task"
+
+[tasks.cron-market-timeseries-5]
+env = { CRON_POD_TASK = "regime-cron-timeseries-5", TASK_TYPE = "TimeSeries", TASK = "AShareEODDerivativeIndicator", COMMAND = "SyncFromLastUpdate" }
+run_task = "cron-task"
+
+[tasks.cron-market-timeseries-6]
+env = { CRON_POD_TASK = "regime-cron-timeseries-6", TASK_TYPE = "TimeSeries", TASK = "AShareL2Indicator", COMMAND = "SyncFromLastUpdate" }
+run_task = "cron-task"
+
+[tasks.cron-market-timeseries-7]
+env = { CRON_POD_TASK = "regime-cron-timeseries-7", TASK_TYPE = "TimeSeries", TASK = "AShareMoneyFlow", COMMAND = "SyncFromLastUpdate" }
+run_task = "cron-task"
+
+[tasks.cron-market-timeseries-8]
+env = { CRON_POD_TASK = "regime-cron-timeseries-8", TASK_TYPE = "TimeSeries", TASK = "AIndexEODPrices", COMMAND = "SyncFromLastUpdate" }
+run_task = "cron-task"
+
+[tasks.cron-market-timeseries-9]
+env = { CRON_POD_TASK = "regime-cron-timeseries-9", TASK_TYPE = "TimeSeries", TASK = "AIndexEODPricesCitics", COMMAND = "SyncFromLastUpdate" }
+run_task = "cron-task"
+
+[tasks.cron-market-timeseries-10]
+env = { CRON_POD_TASK = "regime-cron-timeseries-10", TASK_TYPE = "TimeSeries", TASK = "AIndexEODPricesWind", COMMAND = "SyncFromLastUpdate" }
+run_task = "cron-task"
+
+[tasks.cron-market-timeseries-11]
+env = { CRON_POD_TASK = "regime-cron-timeseries-11", TASK_TYPE = "TimeSeries", TASK = "AIndexFinancialDerivative", COMMAND = "SyncFromLastUpdate" }
+run_task = "cron-task"
+
+[tasks.cron-market-timeseries-12]
+env = { CRON_POD_TASK = "regime-cron-timeseries-12", TASK_TYPE = "TimeSeries", TASK = "AIndexValuation", COMMAND = "SyncFromLastUpdate" }
+run_task = "cron-task"
+
+[tasks.cron-market-timeseries]
+run_task = { name = [
+  "cron-market-timeseries-1",
+  "cron-market-timeseries-2",
+  "cron-market-timeseries-3",
+  "cron-market-timeseries-4",
+  "cron-market-timeseries-5",
+  "cron-market-timeseries-6",
+  "cron-market-timeseries-7",
+  "cron-market-timeseries-8",
+  "cron-market-timeseries-9",
+  "cron-market-timeseries-10",
+  "cron-market-timeseries-11",
+  "cron-market-timeseries-12",
+], parallel = true, fork = true }
+
+
+# ===============================================================================================
+# Cron: Product
+# ===============================================================================================
+
+[tasks.cron-product-0]
+env = { CRON_POD_TASK = "regime-cron-product-0", TASK_TYPE = "Product", TASK = "IProductInformation", COMMAND = "SyncAll" }
+run_task = "cron-task"
+
+[tasks.cron-product-1]
+env = { CRON_POD_TASK = "regime-cron-product-1", TASK_TYPE = "Product", TASK = "IProductBalance", COMMAND = "SyncFromLastUpdate" }
+run_task = "cron-task"
+
+[tasks.cron-product-2]
+env = { CRON_POD_TASK = "regime-cron-product-2", TASK_TYPE = "Product", TASK = "IProductPosition", COMMAND = "SyncFromLastUpdate" }
+run_task = "cron-task"
+
+[tasks.cron-product-3]
+env = { CRON_POD_TASK = "regime-cron-product-3", TASK_TYPE = "Product", TASK = "IProductValuation", COMMAND = "SyncFromLastUpdate" }
+run_task = "cron-task"
+
+[tasks.cron-product]
+run_task = { name = [
+  "cron-product-1",
+  "cron-product-2",
+  "cron-product-3"
+], parallel = true, fork = true }
+
+
+
+# ===============================================================================================
+# Cron: Porfolio
+# ===============================================================================================
+
+# TODO
