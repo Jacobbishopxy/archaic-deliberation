@@ -23,7 +23,7 @@ object AShareEXRightDividend extends TimeSeries {
   lazy val primaryColumn  = Seq(Token.objectId)
   lazy val index          = ("IDX_ashare_ex_right_dividend_record", Seq(Token.timeColumnBiz))
 
-  def process(args: String*)(implicit spark: SparkSession): Unit = {
+  def process(args: String*)(implicit spark: SparkSession): Unit =
     args.toList match {
       case Command.Initialize :: _ =>
         syncInitAll(readFrom, saveTo, query, None)
@@ -75,6 +75,4 @@ object AShareEXRightDividend extends TimeSeries {
         log.error(c)
         throw new Exception("Invalid command")
     }
-  }
-
 }

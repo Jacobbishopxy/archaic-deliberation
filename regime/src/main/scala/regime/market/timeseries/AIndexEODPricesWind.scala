@@ -25,7 +25,7 @@ object AIndexEODPricesWind extends TimeSeries {
 
   lazy val conversionFn = RegimeFn.formatStringToDate(Token.timeTradeDate, dateFormat)
 
-  def process(args: String*)(implicit spark: SparkSession): Unit = {
+  def process(args: String*)(implicit spark: SparkSession): Unit =
     args.toList match {
       case Command.Initialize :: _ =>
         syncInitAll(readFrom, saveTo, query, None, conversionFn)
@@ -81,5 +81,4 @@ object AIndexEODPricesWind extends TimeSeries {
         log.error(c)
         throw new Exception("Invalid command")
     }
-  }
 }
