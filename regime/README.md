@@ -38,7 +38,7 @@ Commands:
 - [x] AShareYield
 - [x] AShareEODDerivativeIndicator
 - [x] AShareL2Indicator
-- [ ] AShareMoneyFlow
+- [x] AShareMoneyFlow
 - [x] AIndexEODPrices
 - [x] AIndexEODPricesCitics
 - [x] AIndexEODPricesWind

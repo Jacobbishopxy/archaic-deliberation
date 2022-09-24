@@ -31,6 +31,9 @@ object RegimeDFHelper {
       .toDF()
       .first()
 
-    Some(resRow.get(0)).filter(_ => resRow.isNullAt(0))
+    resRow.isNullAt(0) match {
+      case true  => None
+      case false => Some(resRow.get(0))
+    }
   }
 }

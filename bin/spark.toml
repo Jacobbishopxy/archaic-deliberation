@@ -235,8 +235,8 @@ run_task = { name = [
   "cron-market-timeseries-8",
   "cron-market-timeseries-9",
   "cron-market-timeseries-10",
-  "cron-market-timeseries-11",
-  "cron-market-timeseries-12",
+  # "cron-market-timeseries-11",
+  # "cron-market-timeseries-12",
 ], parallel = true, fork = true }
 
 
