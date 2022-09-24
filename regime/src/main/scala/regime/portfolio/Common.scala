@@ -13,6 +13,7 @@ object Common {
     val tradeDate  = "trade_date"
     val symbol     = "symbol"
     val productNum = "product_num"
+    val netValue   = "net_value"
   }
 
   def connTable(table: String): ConnTable =

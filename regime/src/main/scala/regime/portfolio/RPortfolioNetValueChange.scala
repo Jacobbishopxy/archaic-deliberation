@@ -36,14 +36,14 @@ object RPortfolioNetValueChange extends Portfolio {
   lazy val saveTo            = connTable(tableName)
   lazy val saveToCol         = connTableColumn(tableName, Token.tradeDate)
 
-  lazy val primaryKey = (s"PK_$tableName", Seq(Token.productNum, Token.tradeDate))
+  lazy val primaryKeyName = s"PK_$tableName"
+  lazy val primaryKeyCols = Seq(Token.productNum, Token.tradeDate)
 
   def calcAll(
       helper: RegimeJdbcHelper,
       date: Option[String]
   )(implicit spark: SparkSession): DataFrame = {
-    import spark.implicits._
-
+    // read from different calc methods
     val (nvcD, nvcM, nvcQ, nvcY) = date match {
       case None =>
         (
@@ -65,30 +65,41 @@ object RPortfolioNetValueChange extends Portfolio {
       .join(
         nvcM,
         nvcD(Token.productNum) === nvcM(Token.productNum) &&
-          nvcD(Token.tradeDate) === nvcM(Token.tradeDate)
+          nvcD(Token.tradeDate) === nvcM(Token.tradeDate),
+        "left"
       )
+      .drop(nvcM(Token.productNum))
+      .drop(nvcM(Token.tradeDate))
+      .drop(nvcM(Token.netValue))
       .join(
         nvcQ,
         nvcD(Token.productNum) === nvcQ(Token.productNum) &&
-          nvcD(Token.tradeDate) === nvcQ(Token.tradeDate)
+          nvcD(Token.tradeDate) === nvcQ(Token.tradeDate),
+        "left"
       )
+      .drop(nvcQ(Token.productNum))
+      .drop(nvcQ(Token.tradeDate))
+      .drop(nvcQ(Token.netValue))
       .join(
         nvcY,
         nvcD(Token.productNum) === nvcY(Token.productNum) &&
-          nvcD(Token.tradeDate) === nvcY(Token.tradeDate)
+          nvcD(Token.tradeDate) === nvcY(Token.tradeDate),
+        "left"
       )
+      .drop(nvcY(Token.productNum))
+      .drop(nvcY(Token.tradeDate))
+      .drop(nvcY(Token.netValue))
   }
 
-  override def process(args: String*)(implicit spark: SparkSession): Unit = {
-
+  override def process(args: String*)(implicit spark: SparkSession): Unit =
     args.toList match {
       case Command.Initialize :: _ =>
         val helper = RegimeJdbcHelper(conn)
         val df     = calcAll(helper, None)
         helper.saveTable(df, tableName, SaveMode.ErrorIfExists)
-        createPrimaryKey(saveTo, primaryKey._1, primaryKey._2)
+        createPrimaryKey(saveTo, primaryKeyName, primaryKeyCols)
       case Command.ExecuteOnce :: _ =>
-        createPrimaryKey(saveTo, primaryKey._1, primaryKey._2)
+        createPrimaryKey(saveTo, primaryKeyName, primaryKeyCols)
       case Command.SyncFromLastUpdate :: _ =>
         RegimeCalcHelper.insertFromLastUpdateTime(
           conn,
@@ -102,15 +113,23 @@ object RPortfolioNetValueChange extends Portfolio {
           conn,
           sourceTableColumn,
           targetTableColumn,
-          Seq(Token.productNum, Token.tradeDate),
+          primaryKeyCols,
           None,
           (helper: RegimeJdbcHelper, date: String) => calcAll(helper, Some(date))
         )
-      case Command.TimeFromTillNowUpsert :: _ =>
-      // TODO
+      case Command.TimeFromTillNowUpsert :: timeFrom :: _ =>
+        val helper = RegimeJdbcHelper(conn)
+        val df     = calcAll(helper, Some(timeFrom))
+        helper.upsertTable(
+          df,
+          tableName,
+          None,
+          false,
+          primaryKeyCols,
+          UpsertAction.DoUpdate
+        )
       case c @ _ =>
         log.error(c)
         throw new Exception("Invalid command")
     }
-  }
 }

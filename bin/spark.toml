@@ -249,15 +249,15 @@ env = { CRON_POD_TASK = "regime-cron-product-0", TASK_TYPE = "Product", TASK = "
 run_task = "cron-task"
 
 [tasks.cron-product-1]
-env = { CRON_POD_TASK = "regime-cron-product-1", TASK_TYPE = "Product", TASK = "IProductBalance", COMMAND = "SyncFromLastUpdate" }
+env = { CRON_POD_TASK = "regime-cron-product-1", TASK_TYPE = "Product", TASK = "IProductBalance", COMMAND = "OverrideFromLastUpdate" }
 run_task = "cron-task"
 
 [tasks.cron-product-2]
-env = { CRON_POD_TASK = "regime-cron-product-2", TASK_TYPE = "Product", TASK = "IProductPosition", COMMAND = "SyncFromLastUpdate" }
+env = { CRON_POD_TASK = "regime-cron-product-2", TASK_TYPE = "Product", TASK = "IProductPosition", COMMAND = "OverrideFromLastUpdate" }
 run_task = "cron-task"
 
 [tasks.cron-product-3]
-env = { CRON_POD_TASK = "regime-cron-product-3", TASK_TYPE = "Product", TASK = "IProductValuation", COMMAND = "SyncFromLastUpdate" }
+env = { CRON_POD_TASK = "regime-cron-product-3", TASK_TYPE = "Product", TASK = "IProductValuation", COMMAND = "OverrideFromLastUpdate" }
 run_task = "cron-task"
 
 [tasks.cron-product]
@@ -274,3 +274,12 @@ run_task = { name = [
 # ===============================================================================================
 
 # TODO
+
+[tasks.cron-portfolio-1]
+env = { CRON_POD_TASK = "regime-cron-portfolio-1", TASK_TYPE = "Porfolio", TASK = "RPortfolioNetValueChange", COMMAND = "OverrideFromLastUpdate" }
+run_task = "cron-task"
+
+[tasks.cron-portfolio]
+run_task = { name = [
+  "cron-portfolio-1",
+], parallel = true, fork = true}

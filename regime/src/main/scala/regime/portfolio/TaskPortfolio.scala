@@ -9,8 +9,8 @@ trait Portfolio extends RegimeSpark {
 }
 
 object Portfolio extends TaskCategory {
-  def unapply(str: String): Product = str match {
-    // TODO:
-    case _ => throw new Exception(s"$str is not in Portfolio")
+  def unapply(str: String): Portfolio = str match {
+    case RPortfolioNetValueChange.appName => RPortfolioNetValueChange
+    case _                                => throw new Exception(s"$str is not in Portfolio")
   }
 }
