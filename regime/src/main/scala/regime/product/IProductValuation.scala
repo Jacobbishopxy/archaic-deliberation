@@ -6,7 +6,7 @@ import org.apache.spark.sql.DataFrame
 import regime.helper._
 import regime.product.Common._
 
-object IProductValuation extends Product {
+object IProductValuation extends Product { 
   lazy val query = RegimeSqlHelper.fromResource("sql/product/IProductValuation.sql")
   lazy val queryFromDate = (date: String) =>
     RegimeSqlHelper.generateQueryFromDate(query, Token.timeColumnProduct, date)
